@@ -1,5 +1,9 @@
 # pooch-rattler
 
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/hingebase/pooch-rattler/publish-pypi.yml?label=ci&logo=github)](https://github.com/hingebase/pooch-rattler/actions)
+[![PyPI - Version](https://img.shields.io/pypi/v/pooch-rattler)](https://pypi.org/project/pooch-rattler)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pooch-rattler)
+![BSD-3-Clause License](https://img.shields.io/pypi/l/pooch-rattler)  
 ![basedpyright](https://img.shields.io/endpoint?url=https://docs.basedpyright.com/latest/badge.json)
 ![pyrefly](https://img.shields.io/endpoint?url=https://pyrefly.org/badge.json)
 ![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)
