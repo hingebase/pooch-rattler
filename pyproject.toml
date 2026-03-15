@@ -1,0 +1,84 @@
+[build-system]
+requires = ["uv_build >=0.10.4,<0.11.0"]  # https://github.com/astral-sh/uv/pull/18020
+build-backend = "uv_build"
+
+[project]
+name = "pooch-rattler"
+version = "0.1.0"
+description = "Pooch downloader powered by Rattler"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "BSD-3-Clause"
+keywords = ["data", "download", "caching", "http"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pooch >=1.9.0,<2.0.0",
+    "py-rattler >=0.23.1,<2.0.0",
+    "typing-extensions >=4.10.0,<5.0.0",
+    "uvloop >=0.22.1,<2.0.0; python_version >= '3.12' and sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation != 'PyPy'",
+    "winloop >=0.3.1,<2.0.0; python_version >= '3.12' and sys_platform == 'win32' and platform_python_implementation != 'PyPy'",
+]
+
+[dependency-groups]
+dev = [
+    "bustapi >=0.2.1",
+    "bustapi >=0.9.2; python_version >= '3.10'",
+    "pytest >=8.4.2",
+    "tqdm >=4.67.2",
+    "types-tqdm >=4.67.2",
+]
+
+[[project.authors]]
+name = "hingebase"
+email = "zcliu@pku.edu.cn"
+
+[project.urls]
+Homepage = "https://github.com/hingebase/pooch-rattler"
+"Source Code" = "https://github.com/hingebase/pooch-rattler"
+"Issue Tracker" = "https://github.com/hingebase/pooch-rattler/issues"
+
+[tool.basedpyright]
+reportUnnecessaryTypeIgnoreComment = "warning"
+strict = ["."]
+typeCheckingMode = "off"
+
+[tool.ruff]
+line-length = 79
+preview = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/pooch_rattler/_pooch.py" = ["FA100"]
+"tests/**/*.py" = ["INP001", "S101"]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 72
+
+[tool.tombi.lint.rules]
+tables-out-of-order = "off"
+
+[tool.ty.rules]
+division-by-zero = "warn"
+possibly-missing-attribute = "warn"
+possibly-missing-import = "warn"
+possibly-unresolved-reference = "warn"
+unsupported-dynamic-base = "warn"
