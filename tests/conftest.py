@@ -33,6 +33,7 @@
 import base64
 import contextlib
 import multiprocessing as mp
+import sys
 import time
 from collections.abc import Callable, Iterator, Mapping
 from typing import Any, TypeVar, cast
@@ -69,6 +70,7 @@ def _get_headers() -> Mapping[str, str]:
 
 def _main() -> None:
     app = bustapi.BustAPI()
+    post = _post(app)
     route = _route(app)
     turbo_route = _turbo_route(app, route)
     turbo_route("/200")(lambda: "OK")
@@ -82,11 +84,21 @@ def _main() -> None:
     route("/test-bearer-token")(lambda: _auth(
         _get_headers()["Authorization"] == "Bearer test-bearer-token",
     ))
+    route("/test-gcs/api")(_test_gcs)
+    post("/test-gcs/token")(_test_gcs_token)
     route("/test-headers")(_test_headers)
+    route("/test-oauth/api")(lambda: _auth(
+        _get_headers()["Authorization"] == "Bearer refreshed-access-token",
+    ))
+    post("/test-oauth/token")(_test_oauth_token)
     route("/test-s3-compatible/api")(lambda: _auth(
         b"X-Amz-Credential=test-access-key-id" in bustapi.request.query_string,
     ))
     app.run(load_dotenv=False)  # pyright: ignore[reportUnknownMemberType]
+
+
+def _post(app: bustapi.BustAPI) -> Callable[[str], Callable[[_F], _F]]:
+    return cast("Callable[[str], Any]", app.post)
 
 
 def _route(app: bustapi.BustAPI) -> Callable[[str], Callable[[_F], _F]]:
@@ -98,12 +110,53 @@ def _sleep() -> str:
     return "OK"
 
 
+def _test_gcs() -> str:
+    headers = _get_headers()
+    return _auth(
+        headers["Authorization"] == "test-token-type test-access-token",
+        headers["X-Goog-User-Project"] == "test-project",
+    )
+
+
+def _test_gcs_token() -> dict[str, str]:
+    body: Mapping[str, str] = bustapi.request.json
+    _auth(
+        body["grant_type"] == "refresh_token",
+        body["client_id"] == "test-client-id",
+        body["client_secret"] == "test-client-secret",  # noqa: S105
+        body["refresh_token"] == "test-refresh-token",  # noqa: S105
+        body["scopes"] == "https://www.googleapis.com/auth/devstorage.read_only",
+    )
+    return {
+        "access_token": "test-access-token",
+        "scope": "https://www.googleapis.com/auth/devstorage.read_only",
+        "token_type": "test-token-type",
+        "refresh_token": "test-refresh-token",
+    }
+
+
 def _test_headers() -> str:
     headers = _get_headers()
     return _auth(
         headers["Test-Static"] == "OK",
         headers["Test-Dynamic"] == "overwritten",
     )
+
+
+def _test_oauth_token() -> dict[str, Any]:
+    if sys.version_info >= (3, 10):
+        # BustAPI <=0.2.1 cannot read request body other than JSON
+        body: Mapping[str, str] = bustapi.request.form
+        _auth(
+            body["grant_type"] == "refresh_token",
+            body["client_id"] == "test-client-id",
+            body["refresh_token"] == "test-refresh-token",  # noqa: S105
+        )
+    return {
+        "access_token": "refreshed-access-token",
+        "refresh_token": "refreshed-refresh-token",
+        "expires_in": 300,
+    }
 
 
 def _turbo_route(app: bustapi.BustAPI, route: _F) -> _F:

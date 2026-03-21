@@ -33,7 +33,8 @@
 import hashlib
 import json
 import pathlib
-from typing import Any
+import time
+from typing import Any, TypedDict
 
 import pytest
 import rattler.networking.middleware
@@ -88,6 +89,72 @@ def test_bearer_token(
     )
 
 
+def test_gcs(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
+    """Fetch some data from Google Cloud Storage.
+
+    Keep in mind that public storages can be directly accessed via
+    https://storage.googleapis.com/ and don't require a GCSMiddleware.
+    """
+    credentials = {
+        "type": "authorized_user",
+        "client_id": "test-client-id",
+        "client_secret": "test-client-secret",
+        "refresh_token": "test-refresh-token",
+        "token_uri": "http://127.0.0.1:5000/test-gcs/token",
+        "quota_project_id": "test-project",
+    }
+    adc_path = tmp_path / "application_default_credentials.json"
+    with adc_path.open("x", encoding="utf-8") as f:
+        json.dump(credentials, f)
+    monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", str(adc_path))
+    monkeypatch.delenv("GOOGLE_CLOUD_QUOTA_PROJECT", raising=False)
+    pooch_rattler.Downloader(
+        rattler.networking.GCSMiddleware(),
+        # Redirect the request to avoid Internet access
+        rattler.networking.MirrorMiddleware({
+            "https://storage.googleapis.com": [
+                "http://127.0.0.1:5000",
+            ],
+        }),
+    ).retrieve(
+        "gcs://test-gcs/api",
+        known_hash=_OK,
+        path=tmp_path,
+    )
+
+
+def test_oauth(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    """Test authentication with OAuth."""
+    credentials = {
+        "127.0.0.1": {
+            "OAuth": {
+                "access_token": "test-access-token",
+                "refresh_token": "test-refresh-token",
+                "expires_at": int(time.time()) - 300,
+                "token_endpoint": "http://127.0.0.1:5000/test-oauth/token",
+                "client_id": "test-client-id",
+            },
+        },
+    }
+    rattler_auth_file = _temp_auth_file(credentials, monkeypatch, tmp_path)
+    pooch_rattler.Downloader(
+        rattler.networking.AuthenticationMiddleware(),
+    ).retrieve(
+        "http://127.0.0.1:5000/test-oauth/api",
+        known_hash=_OK,
+        path=tmp_path,
+    )
+    with rattler_auth_file.open(encoding="utf-8") as f:
+        refreshed: dict[str, dict[str, _OAuth]] = json.load(f)
+    oauth = refreshed["127.0.0.1"]["OAuth"]
+    assert oauth["access_token"] == "refreshed-access-token"  # noqa: S105
+    assert oauth["refresh_token"] == "refreshed-refresh-token"  # noqa: S105
+    assert oauth["expires_at"] > time.time()
+
+
 def test_s3_compatible(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
@@ -121,12 +188,19 @@ def test_s3_compatible(
     )
 
 
+class _OAuth(TypedDict):
+    access_token: str
+    refresh_token: str
+    expires_at: int
+
+
 def _temp_auth_file(
     credentials: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
-) -> None:
+) -> pathlib.Path:
     rattler_auth_file = tmp_path / "credentials.json"
     with rattler_auth_file.open("x", encoding="utf-8") as f:
         json.dump(credentials, f)
     monkeypatch.setenv("RATTLER_AUTH_FILE", str(rattler_auth_file))
+    return rattler_auth_file
