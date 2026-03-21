@@ -27,13 +27,13 @@ uvloop = ">=0.22.1,<2.0.0"
 winloop = ">=0.3.1,<2.0.0"
 
 [dependencies]
-basedpyright = ">=1.38.2"
+basedpyright = ">=1.38.3"
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
-pyrefly = ">=0.55.0"
+pyrefly = ">=0.57.1"
 pytest = ">=8.4.2"
 tqdm = ">=4.67.2"
-ty = ">=0.0.21"
+ty = ">=0.0.24"
 types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
@@ -47,7 +47,7 @@ py314 = ["py314"]
 
 [feature.py310.dependencies]
 python-gil = "3.10.*"
-ruff = ">=0.15.0"
+ruff = ">=0.15.7"
 
 [feature.py310.tasks]
 ruff = "ruff check"
