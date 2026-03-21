@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build >=0.10.4,<0.11.0"]  # https://github.com/astral-sh/uv/pull/18020
+requires = ["uv-build >=0.10.10,<0.11.0"]
 build-backend = "uv_build"
 
 [project]
@@ -15,7 +15,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.9",
