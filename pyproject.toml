@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build >=0.10.4,<0.11.0"]  # https://github.com/astral-sh/uv/pull/18020
+requires = ["uv-build >=0.10.10,<0.11.0"]
 build-backend = "uv_build"
 
 [project]
@@ -15,7 +15,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.9",
@@ -31,7 +30,7 @@ classifiers = [
 dependencies = [
     "pooch >=1.9.0,<2.0.0",
     "py-rattler >=0.23.1,<2.0.0",
-    "typing-extensions >=4.10.0,<5.0.0",
+    "typing-extensions >=4.14.0,<5.0.0",
     "uvloop >=0.22.1,<2.0.0; python_version >= '3.12' and sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation != 'PyPy'",
     "winloop >=0.3.1,<2.0.0; python_version >= '3.12' and sys_platform == 'win32' and platform_python_implementation != 'PyPy'",
 ]
