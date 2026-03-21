@@ -73,9 +73,9 @@ def _main() -> None:
     post = _post(app)
     route = _route(app)
     turbo_route = _turbo_route(app, route)
-    turbo_route("/200")(lambda: "OK")
-    turbo_route("/503")(lambda: bustapi.abort(503))  # pyright: ignore[reportUnknownMemberType]
-    turbo_route("/sleep")(lambda: time.sleep(2))
+    turbo_route("/200/")(lambda: "OK")
+    turbo_route("/503/")(lambda: bustapi.abort(503))  # pyright: ignore[reportUnknownMemberType]
+    turbo_route("/sleep/")(lambda: time.sleep(2))
     for path in "/sleep1", "/sleep2":
         turbo_route(path)(_sleep)
     route("/test-basic-http")(lambda: _auth(

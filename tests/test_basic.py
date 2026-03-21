@@ -80,16 +80,16 @@ def test_retry_with_different_mirrors(tmp_path: pathlib.Path) -> None:
     pooch_rattler.Downloader(
         rattler.networking.RetryMiddleware(max_retries=2),
         rattler.networking.MirrorMiddleware({
-            "http://127.0.0.1:5000/200": [
-                "http://127.0.0.1:5000/503",
-                "http://127.0.0.1:5000/sleep",
-                "http://127.0.0.1:5000/200",
+            "http://127.0.0.1:5000/test-retry": [
+                "http://127.0.0.1:5000/503/",
+                "http://127.0.0.1:5000/sleep/",
+                "http://127.0.0.1:5000/200/",
             ],
         }),
         rattler.networking.AddHeadersMiddleware(_EnsureRequestPath()),
         timeout=1,
     ).retrieve(
-        "http://127.0.0.1:5000/200",
+        "http://127.0.0.1:5000/test-retry",
         known_hash=_OK,
         path=tmp_path,
     )
@@ -97,15 +97,15 @@ def test_retry_with_different_mirrors(tmp_path: pathlib.Path) -> None:
 
 class _EnsureRequestPath:
     def __init__(self) -> None:
-        self._path = "/503"
+        self._path = "/503/"
 
     def __call__(self, host: str, path: str) -> None:
         assert path == self._path
-        if path == "/503":
-            self._path = "/sleep"
-        elif path == "/sleep":
-            self._path = "/200"
-        elif path == "/200":
+        if path == "/503/":
+            self._path = "/sleep/"
+        elif path == "/sleep/":
+            self._path = "/200/"
+        elif path == "/200/":
             del host, self._path
 
 
