@@ -13,7 +13,7 @@ channels = ["conda-forge"]
 ignore-pypi-mapping = true
 
 [package.host-dependencies]
-uv = ">=0.9.0"
+uv = ">=0.11.0,<0.12.0"
 
 [package.run-dependencies]
 pooch = ">=1.9.0,<2.0.0"
@@ -27,13 +27,13 @@ uvloop = ">=0.22.1,<2.0.0"
 winloop = ">=0.3.1,<2.0.0"
 
 [dependencies]
-basedpyright = ">=1.38.3"
+basedpyright = ">=1.38.4"
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
-pyrefly = ">=0.57.1"
+pyrefly = ">=0.58.0"
 pytest = ">=8.4.2"
 tqdm = ">=4.67.2"
-ty = ">=0.0.24"
+ty = ">=0.0.25"
 types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
@@ -47,7 +47,7 @@ py314 = ["py314"]
 
 [feature.py310.dependencies]
 python-gil = "3.10.*"
-ruff = ">=0.15.7"
+ruff = ">=0.15.8"
 
 [feature.py310.tasks]
 ruff = "ruff check"
