@@ -14,7 +14,7 @@
 [Pooch downloader][1] powered by [Rattler][2].
 ## Features
 - Native Rust performance
-- Work with `asyncio`
+- Work with `anyio`, `asyncio` and `trio`
 - Drop-in replacement of the global default Pooch downloader
 - [Reqwest middlewares][3] which bring the missing [GCS][4], [S3][5] and
   [retry][6] support in Pooch
