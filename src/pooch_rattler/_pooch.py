@@ -30,13 +30,13 @@
 
 __all__ = ["Progress", "RattlerDownloader", "choose_downloader", "install"]
 
-import asyncio
 import functools
 import os
-import sys
-from collections.abc import Callable, Coroutine, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import TYPE_CHECKING, Optional, TypeVar, Union, cast
 
+import anyio.from_thread
+import anyio.lowlevel
 import pooch.downloaders  # pyright: ignore[reportMissingTypeStubs]
 import rattler.networking
 import rattler.package_streaming
@@ -47,9 +47,10 @@ from pooch.typing import (  # pyright: ignore[reportMissingTypeStubs]
 )
 from typing_extensions import (
     Literal,
-    Never,
     Protocol,
     TypeIs,
+    TypeVarTuple,
+    Unpack,
     overload,
     override,
     runtime_checkable,
@@ -58,19 +59,8 @@ from typing_extensions import (
 if TYPE_CHECKING:
     from _typeshed import StrPath
 
-if sys.version_info >= (3, 12):
-    if sys.platform == "win32":
-        import winloop as uvloop  # pyright: ignore[reportMissingImports]
-    else:
-        import uvloop  # pyright: ignore[reportMissingImports]
-
-    _LoopFactory = Callable[[], asyncio.AbstractEventLoop]
-    _default_loop_factory = uvloop.new_event_loop
-else:
-    _LoopFactory = Never
-    _default_loop_factory = None
-
 _T = TypeVar("_T")
+_Ts = TypeVarTuple("_Ts")
 
 
 @runtime_checkable
@@ -83,16 +73,7 @@ class Progress(Protocol):
 
 
 class RattlerDownloader(Downloader):
-    _loop: Optional[asyncio.AbstractEventLoop]
-
-    if sys.version_info >= (3, 12):
-        def _run(self, coro: Coroutine) -> None:
-            asyncio.run(
-                coro,
-                loop_factory=self._loop_factory,  # ty: ignore[unknown-argument]
-            )
-    else:
-        _run = staticmethod(asyncio.run)
+    _token: Optional[anyio.lowlevel.EventLoopToken]
 
     def __init__(
         self,
@@ -106,7 +87,6 @@ class RattlerDownloader(Downloader):
             rattler.networking.S3Middleware,
         ],
         headers: Optional[Mapping[str, str]] = None,
-        loop_factory: Optional[_LoopFactory] = _default_loop_factory,
         timeout: Optional[int] = pooch.downloaders.DEFAULT_TIMEOUT,
     ) -> None:
         self._client = rattler.Client(
@@ -115,10 +95,9 @@ class RattlerDownloader(Downloader):
             timeout,
         )
         try:
-            self._loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self._loop = None
-        self._loop_factory = loop_factory
+            self._token = anyio.lowlevel.current_token()
+        except anyio.NoEventLoopError:
+            self._token = None
 
     @override
     def __call__(  # ty: ignore[invalid-method-override]
@@ -132,20 +111,21 @@ class RattlerDownloader(Downloader):
         if check_only:
             raise NotImplementedError
         if _is_path_like(output_file):
-            coro = rattler.package_streaming.download_to_path(
-                self._client, url, output_file)
+            _syncify(
+                rattler.package_streaming.download_to_path,
+                self._client,
+                url,
+                output_file,
+                token=self._token,
+            )
         else:
-            coro = rattler.package_streaming.download_to_writer(
-                self._client, url, output_file)
-        if loop := self._loop:
-            _ensure_no_running_loop()
-            asyncio.run_coroutine_threadsafe(coro, loop).result()
-        else:
-            try:
-                self._run(coro)
-            except RuntimeError:
-                _ensure_no_running_loop()
-                raise
+            _syncify(
+                rattler.package_streaming.download_to_writer,
+                self._client,
+                url,
+                output_file,
+                token=self._token,
+            )
 
     @overload
     def fetch(
@@ -223,11 +203,11 @@ class RattlerDownloader(Downloader):
             downloader=self,  # pyrefly: ignore[bad-argument-type]
         )
 
-    def set_loop(
+    def set_token(
         self,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        token: Optional[anyio.lowlevel.EventLoopToken] = None,
     ) -> None:
-        self._loop = loop
+        self._token = token
 
 
 @overload
@@ -283,20 +263,19 @@ def install() -> None:
     )
 
 
-def _ensure_no_running_loop() -> None:
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return
-    message = (
-        "The downloader should be invoked from a different thread "
-        "when there is a running event loop"
-    )
-    raise RuntimeError(message) from None
-
-
 def _is_path_like(output_file: object) -> TypeIs[os.PathLike[str]]:
     return not hasattr(output_file, "write")
+
+
+def _syncify(
+    func: Callable[[Unpack[_Ts]], Awaitable[None]],
+    *args: Unpack[_Ts],
+    token: Optional[anyio.lowlevel.EventLoopToken],
+) -> None:
+    try:
+        anyio.from_thread.run(func, *args, token=token)
+    except anyio.NoEventLoopError:
+        anyio.run(func, *args, backend_options={"use_uvloop": True})
 
 
 # The FFI objects don't touch environment variables or filesystems
