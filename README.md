@@ -21,30 +21,29 @@
 
 ## Get started
 ``` py
-import asyncio
-
+import anyio.to_thread
 import pooch
 import pooch_rattler
 
+# Register global default
+pooch_rattler.install()
+
 # Synchronous download
-pooch_rattler.install()  # Register global default
 downloaded_file = pooch.retrieve("https://example.com/index.html")
 
 # Asynchronous download
 async def async_download():
-    # Explicit initialization is recommended, in which case the download
-    # task is executed within the main thread and the running event loop
-    downloader = pooch_rattler.Downloader()
     # We still need a worker thread to look for existing cache,
     # validate checksums and decompress downloaded files
-    return await asyncio.to_thread(
-        downloader.retrieve, "https://example.com/index.html")
+    return await anyio.to_thread.run_sync(
+        pooch.retrieve, "https://example.com/index.html")
 
-cached_file = asyncio.run(async_download())
+cached_file = anyio.run(async_download)
 assert cached_file == downloaded_file
 ```
 
-More examples can be found in the [unit tests][7].
+Downloaders can also be created and invoked explicitly.
+Examples can be found in the [unit tests][7].
 
 [1]: https://www.fatiando.org/pooch/latest/downloaders.html
 [2]: https://github.com/conda/rattler

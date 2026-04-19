@@ -64,9 +64,33 @@ def test_headers(tmp_path: pathlib.Path) -> None:
     )
 
 
-def test_parallel(tmp_path: pathlib.Path) -> None:
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+async def test_parallel(
+    anyio_backend_name: str,
+    tmp_path: pathlib.Path,
+) -> None:
     """Download tasks should run concurrently."""
-    asyncio.run(_test_parallel_main(tmp_path))
+    assert anyio_backend_name == "asyncio"
+    downloader = pooch_rattler.Downloader()
+    coro1 = asyncio.to_thread(
+        downloader.retrieve,
+        "http://127.0.0.1:5000/sleep1",
+        known_hash=_OK,
+        path=tmp_path,
+    )
+    coro2 = asyncio.to_thread(
+        downloader.retrieve,
+        "http://127.0.0.1:5000/sleep2",
+        known_hash=_OK,
+        path=tmp_path,
+    )
+    # According to the documentation, `asyncio.wait_for` may exceed its
+    # timeout. Timing the tasks manually.
+    tic = time.monotonic()
+    await asyncio.gather(coro1, coro2)
+    toc = time.monotonic()
+    eps = toc - math.nextafter(toc, -math.inf)
+    assert 1-eps < toc-tic < 2-eps  # noqa: E226
 
 
 def test_progress() -> None:
@@ -136,26 +160,3 @@ class _MinimalProgressDisplay:
 def _add_headers(host: str, path: str) -> dict[str, str]:
     del host, path
     return {"Test-Dynamic": "overwritten"}
-
-
-async def _test_parallel_main(path: pathlib.Path) -> None:
-    downloader = pooch_rattler.Downloader()
-    coro1 = asyncio.to_thread(
-        downloader.retrieve,
-        "http://127.0.0.1:5000/sleep1",
-        known_hash=_OK,
-        path=path,
-    )
-    coro2 = asyncio.to_thread(
-        downloader.retrieve,
-        "http://127.0.0.1:5000/sleep2",
-        known_hash=_OK,
-        path=path,
-    )
-    # According to the documentation, `asyncio.wait_for` may exceed its
-    # timeout. Timing the tasks manually.
-    tic = time.monotonic()
-    await asyncio.gather(coro1, coro2)
-    toc = time.monotonic()
-    eps = toc - math.nextafter(toc, -math.inf)
-    assert 1-eps < toc-tic < 2-eps  # noqa: E226
