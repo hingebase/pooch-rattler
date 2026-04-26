@@ -101,7 +101,7 @@ async def _test_anyio_asyncio(downloader: pooch_rattler.Downloader) -> None:
                     assert isinstance(task, asyncio.Task)
                     assert task.get_loop() is current_token().native_token
                     return
-    pytest.fail("asyncio.Task not found")  # ty: ignore[invalid-argument-type]
+    pytest.fail("asyncio.Task not found")
 
 
 async def _test_anyio_trio(downloader: pooch_rattler.Downloader) -> None:
@@ -116,7 +116,7 @@ async def _test_anyio_trio(downloader: pooch_rattler.Downloader) -> None:
                 if token := info.frame.f_locals.get("trio_token"):
                     assert token is current_token().native_token
                     return
-    pytest.fail("TrioToken not found")  # ty: ignore[invalid-argument-type]
+    pytest.fail("TrioToken not found")
 
 
 async def _test_bare_asyncio() -> None:
@@ -131,7 +131,7 @@ async def _test_bare_asyncio() -> None:
                 if loop := info.frame.f_locals.get("loop"):
                     assert loop is asyncio.get_running_loop()
                     return
-    pytest.fail("asyncio loop not found")  # ty: ignore[invalid-argument-type]
+    pytest.fail("asyncio loop not found")
 
 
 async def _test_bare_trio() -> None:
@@ -146,4 +146,4 @@ async def _test_bare_trio() -> None:
                 if token := info.frame.f_locals.get("trio_token"):
                     assert token is trio.lowlevel.current_trio_token()
                     return
-    pytest.fail("TrioToken not found")  # ty: ignore[invalid-argument-type]
+    pytest.fail("TrioToken not found")
