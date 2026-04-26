@@ -87,6 +87,10 @@ def test_ruff(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_ty(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with ty."""
     argv = ["ty", "check", "--python", sys.executable]
+    if sys.version_info < (3, 10):
+        # https://github.com/pytest-dev/pytest/pull/13445
+        # Merged in pytest 9.0.0 which dropped Python 3.9 support
+        argv += ["--ignore", "invalid-argument-type"]
     monkeypatch.setattr(sys, "argv", argv)
     with _astral_context(monkeypatch):
         _run_module("ty")
