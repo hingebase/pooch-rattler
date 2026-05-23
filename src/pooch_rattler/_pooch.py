@@ -109,7 +109,8 @@ class RattlerDownloader(Downloader):
         check_only: Optional[bool] = None,
     ) -> None:
         if check_only:
-            raise NotImplementedError
+            # https://github.com/fatiando/pooch/blob/v1.9.0/pooch/core.py#L749
+            raise TypeError
         if _is_path_like(output_file):
             _syncify(
                 rattler.package_streaming.download_to_path,
