@@ -111,11 +111,7 @@ class _BaseDownloader(Downloader):
         pooch: pooch.Pooch,
         processor: Optional[Processor] = None,
     ) -> object:
-        return pooch.fetch(
-            fname,
-            processor,
-            downloader=self,  # pyrefly: ignore[bad-argument-type]
-        )
+        return pooch.fetch(fname, processor, downloader=self)
 
     @overload
     def retrieve(
@@ -162,7 +158,7 @@ class _BaseDownloader(Downloader):
             fname,
             path,
             processor,
-            downloader=self,  # pyrefly: ignore[bad-argument-type]
+            downloader=self,
         )
 
     def set_token(

@@ -65,6 +65,13 @@ reportUnnecessaryTypeIgnoreComment = "warning"
 strict = ["."]
 typeCheckingMode = "off"
 
+[tool.pyrefly]
+preset = "strict"
+
+[[tool.pyrefly.sub-config]]
+matches = "tests/conftest.py"
+errors = { missing-attribute = false }
+
 [tool.ruff]
 line-length = 79
 preview = true

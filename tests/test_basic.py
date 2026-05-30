@@ -95,7 +95,7 @@ async def test_parallel(
 
 def test_progress() -> None:
     """Test the progress bar protocol."""
-    assert issubclass(tqdm.tqdm, pooch_rattler.Progress)
+    assert issubclass(tqdm.tqdm, pooch_rattler.Progress)  # pyrefly: ignore[implicit-any-type-argument]
     assert issubclass(_MinimalProgressDisplay, pooch_rattler.Progress)
 
 
