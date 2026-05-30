@@ -31,6 +31,7 @@
 """Type checking and linting."""
 
 import contextlib
+import json
 import os
 import runpy
 import subprocess  # noqa: S404
@@ -58,6 +59,8 @@ else:
         finally:
             assert patched
 
+_FULL_COVERAGE = 100
+
 
 def test_basedpyright(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with basedpyright."""
@@ -70,6 +73,13 @@ def test_pyrefly(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with pyrefly."""
     monkeypatch.setattr(sys, "argv", ["pyrefly", "check"])
     _run_module("pyrefly")
+
+
+def test_pyrefly_coverage() -> None:
+    """Type coverage checking with pyrefly."""
+    from pyrefly.__main__ import get_pyrefly_bin  # noqa: PLC0415
+    report = subprocess.check_output([get_pyrefly_bin(), "coverage", "report"])  # noqa: S603
+    assert json.loads(report)["summary"]["strict_coverage"] == _FULL_COVERAGE
 
 
 @pytest.mark.skipif(

@@ -46,7 +46,7 @@ import pooch_rattler
 
 _OK = hashlib.sha256(b"OK").hexdigest()
 
-pytestmark = pytest.mark.usefixtures("test_server")
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("test_server")
 
 
 def test_headers(tmp_path: pathlib.Path) -> None:
@@ -137,8 +137,8 @@ class _EnsureRequestPath:
 # with annotations added
 class _MinimalProgressDisplay:
     def __init__(self, total: Optional[int]) -> None:  # noqa: FA100
-        self.count = 0
-        self.total = total
+        self.count: int = 0
+        self.total: Optional[int] = total  # noqa: FA100
 
     def __repr__(self) -> str:
         return str(self.count) + "/" + str(self.total)

@@ -43,7 +43,7 @@ import pooch_rattler
 
 _OK = hashlib.sha256(b"OK").hexdigest()
 
-pytestmark = pytest.mark.usefixtures("test_server")
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("test_server")
 
 
 def test_basic_http(
