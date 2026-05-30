@@ -28,12 +28,20 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-__all__ = ["Progress", "RattlerDownloader", "choose_downloader", "install"]
+__all__ = [
+    "Progress",
+    "RattlerDownloader",
+    "ResumableDownloader",
+    "choose_downloader",
+    "install",
+]
 
+import contextlib
 import functools
 import os
+import pathlib
 from collections.abc import Awaitable, Callable, Mapping
-from typing import TYPE_CHECKING, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, BinaryIO, Optional, TypeVar, Union, cast
 
 import anyio.from_thread
 import anyio.lowlevel
@@ -72,61 +80,14 @@ class Progress(Protocol):
     # either static type checkers or `isinstance` / `issubclass`
 
 
-class RattlerDownloader(Downloader):
+class _BaseDownloader(Downloader):
     _token: Optional[anyio.lowlevel.EventLoopToken]
 
-    def __init__(
-        self,
-        *middlewares: Union[
-            rattler.networking.AddHeadersMiddleware,
-            rattler.networking.AuthenticationMiddleware,
-            rattler.networking.GCSMiddleware,
-            rattler.networking.MirrorMiddleware,
-            rattler.networking.OciMiddleware,
-            rattler.networking.RetryMiddleware,
-            rattler.networking.S3Middleware,
-        ],
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[int] = pooch.downloaders.DEFAULT_TIMEOUT,
-    ) -> None:
-        self._client = rattler.Client(
-            list(middlewares) if middlewares else None,
-            dict(headers) if headers else None,
-            timeout,
-        )
+    def __init__(self) -> None:
         try:
             self._token = anyio.lowlevel.current_token()
         except anyio.NoEventLoopError:
             self._token = None
-
-    @override
-    def __call__(  # ty: ignore[invalid-method-override]
-        self,
-        url: str,
-        output_file: object,
-        pooch: Optional[pooch.Pooch],
-        *,
-        check_only: Optional[bool] = None,
-    ) -> None:
-        if check_only:
-            # https://github.com/fatiando/pooch/blob/v1.9.0/pooch/core.py#L749
-            raise TypeError
-        if _is_path_like(output_file):
-            _syncify(
-                rattler.package_streaming.download_to_path,
-                self._client,
-                url,
-                output_file,
-                token=self._token,
-            )
-        else:
-            _syncify(
-                rattler.package_streaming.download_to_writer,
-                self._client,
-                url,
-                output_file,
-                token=self._token,
-            )
 
     @overload
     def fetch(
@@ -211,6 +172,120 @@ class RattlerDownloader(Downloader):
         self._token = token
 
 
+class RattlerDownloader(_BaseDownloader):
+    @override
+    def __init__(
+        self,
+        *middlewares: Union[
+            rattler.networking.AddHeadersMiddleware,
+            rattler.networking.AuthenticationMiddleware,
+            rattler.networking.GCSMiddleware,
+            rattler.networking.MirrorMiddleware,
+            rattler.networking.OciMiddleware,
+            rattler.networking.RetryMiddleware,
+            rattler.networking.S3Middleware,
+        ],
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = pooch.downloaders.DEFAULT_TIMEOUT,
+    ) -> None:
+        super().__init__()
+        self._client = rattler.Client(
+            list(middlewares) if middlewares else None,
+            dict(headers) if headers else None,
+            timeout,
+        )
+
+    @override
+    def __call__(  # ty: ignore[invalid-method-override]
+        self,
+        url: str,
+        output_file: object,
+        pooch: Optional[pooch.Pooch],
+        *,
+        check_only: Optional[bool] = None,
+    ) -> None:
+        if check_only:
+            # https://github.com/fatiando/pooch/blob/v1.9.0/pooch/core.py#L749
+            raise TypeError
+        if _is_path_like(output_file):
+            _syncify(
+                rattler.package_streaming.download_to_path,
+                self._client,
+                url,
+                output_file,
+                token=self._token,
+            )
+        else:
+            _syncify(
+                rattler.package_streaming.download_to_writer,
+                self._client,
+                url,
+                output_file,
+                token=self._token,
+            )
+
+
+class ResumableDownloader(_BaseDownloader):
+    @override
+    def __init__(
+        self,
+        *middlewares: Union[
+            rattler.networking.AddHeadersMiddleware,
+            rattler.networking.AuthenticationMiddleware,
+            rattler.networking.GCSMiddleware,
+            rattler.networking.OciMiddleware,
+            rattler.networking.S3Middleware,
+        ],
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = pooch.downloaders.DEFAULT_TIMEOUT,
+        max_retries: int = 3,
+    ) -> None:
+        super().__init__()
+        self._middlewares = middlewares
+        self._headers = dict(headers) if headers else None
+        self._timeout = timeout
+        self._max_retries = max(max_retries, 0)
+
+    @override
+    def __call__(  # ty: ignore[invalid-method-override]
+        self,
+        url: str,
+        output_file: object,
+        pooch: Optional[pooch.Pooch],
+        *,
+        check_only: Optional[bool] = None,
+    ) -> None:
+        if check_only:
+            raise TypeError
+        last_exc = None
+        with _open_output_file(output_file) as f:
+            client = rattler.Client(
+                [*self._middlewares, _add_range_header(f)],
+                self._headers,
+                self._timeout,
+            )
+            for _ in range(self._max_retries + 1):
+                try:
+                    _syncify(
+                        rattler.package_streaming.download_to_writer,
+                        client,
+                        url,
+                        f,
+                        token=self._token,
+                    )
+                except BaseException as e:  # noqa: PERF203
+                    e.__context__ = last_exc
+                    if not isinstance(e, Exception):
+                        raise
+                    last_exc = e
+                else:
+                    return
+        if last_exc:
+            raise last_exc
+        message = "Unreachable"
+        raise AssertionError(message)
+
+
 @overload
 def choose_downloader(url: str, progressbar: Literal[False] = ...) -> Union[
     RattlerDownloader,
@@ -264,8 +339,29 @@ def install() -> None:
     )
 
 
+def _add_range_header(f: BinaryIO) -> rattler.networking.AddHeadersMiddleware:
+    def callback(host: str, path: str) -> Optional[dict[str, str]]:
+        if partial := f.tell() - initial:
+            if partial > 0:
+                return {"Range": f"bytes={partial}-"}
+            del host, path
+            message = "File corrupted"
+            raise AssertionError(message)
+        return None
+    initial = f.tell()
+    return rattler.networking.AddHeadersMiddleware(callback)
+
+
 def _is_path_like(output_file: object) -> TypeIs[os.PathLike[str]]:
     return not hasattr(output_file, "write")
+
+
+def _open_output_file(
+    output_file: object,
+) -> contextlib.AbstractContextManager[BinaryIO]:
+    if _is_path_like(output_file):
+        return pathlib.Path(output_file).open("w+b")
+    return contextlib.nullcontext(cast("BinaryIO", output_file))
 
 
 def _syncify(

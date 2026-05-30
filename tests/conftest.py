@@ -91,10 +91,16 @@ def _main() -> None:
         _get_headers()["Authorization"] == "Bearer refreshed-access-token",
     ))
     post("/test-oauth/token")(_test_oauth_token)
+    route("/test-resume")(_test_resume)
     route("/test-s3-compatible/api")(lambda: _auth(
         b"X-Amz-Credential=test-access-key-id" in bustapi.request.query_string,
     ))
     app.run(load_dotenv=False)  # pyright: ignore[reportUnknownMemberType]
+
+
+def _partial_response() -> Iterator[str]:
+    yield "O"
+    raise EOFError
 
 
 def _post(app: bustapi.BustAPI) -> Callable[[str], Callable[[_F], _F]]:
@@ -157,6 +163,17 @@ def _test_oauth_token() -> dict[str, Any]:
         "refresh_token": "refreshed-refresh-token",
         "expires_in": 300,
     }
+
+
+def _test_resume() -> bustapi.Response:
+    if sys.version_info < (3, 10):
+        raise NotImplementedError
+    if _get_headers().get("Range") == "bytes=1-":
+        return bustapi.PlainTextResponse("K", status_code=206)
+    return bustapi.StreamingResponse(
+        _partial_response(),
+        media_type="text/plain",
+    )
 
 
 def _turbo_route(app: bustapi.BustAPI, route: _F) -> _F:

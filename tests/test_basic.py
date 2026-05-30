@@ -119,6 +119,19 @@ def test_retry_with_different_mirrors(tmp_path: pathlib.Path) -> None:
     )
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="StreamingResponse was introduced in BustAPI 0.6.0",
+)
+def test_resume(tmp_path: pathlib.Path) -> None:
+    """Test resumption from partial downloaded file."""
+    pooch_rattler.ResumableDownloader().retrieve(
+        "http://127.0.0.1:5000/test-resume",
+        known_hash=_OK,
+        path=tmp_path,
+    )
+
+
 class _EnsureRequestPath:
     def __init__(self) -> None:
         self._path = "/503/"

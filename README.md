@@ -44,6 +44,18 @@ assert cached_file == downloaded_file
 
 Downloaders can also be created and invoked explicitly.
 Examples can be found in the [unit tests][7].
+## Resumable downloader
+Resumable downloader provides functionality like `curl -C -` ([man page][8]).
+It's not the default behavior due to the following limitations:
+- The server must know how to handle HTTP range requests, otherwise the
+  downloaded file can be corrupted since there is no way to read response
+  headers into Python from Rattler.
+- Resumable downloader also introduces slightly more Python overhead even if no
+  actual resumption takes place.
+
+Resumable downloader supports most of the features described in the previous
+sections. To use it, replace your `pooch_rattler.Downloader` with
+`pooch_rattler.ResumableDownloader`.
 
 [1]: https://www.fatiando.org/pooch/latest/downloaders.html
 [2]: https://github.com/conda/rattler
@@ -52,3 +64,4 @@ Examples can be found in the [unit tests][7].
 [5]: https://github.com/fatiando/pooch/issues/363
 [6]: https://github.com/fatiando/pooch/issues/464
 [7]: https://github.com/hingebase/pooch-rattler/tree/main/tests
+[8]: https://curl.se/docs/manpage.html#--continue-at
