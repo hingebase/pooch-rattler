@@ -71,7 +71,11 @@ def test_basedpyright(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_pyrefly(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with pyrefly."""
-    monkeypatch.setattr(sys, "argv", ["pyrefly", "check"])
+    argv = ["pyrefly", "check"]
+    if sys.version_info < (3, 10):
+        # BustAPI 0.2.1 lacks many features
+        argv += ["--ignore", "missing-attribute"]
+    monkeypatch.setattr(sys, "argv", argv)
     _run_module("pyrefly")
 
 
