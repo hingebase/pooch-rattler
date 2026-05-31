@@ -87,3 +87,9 @@ tables-out-of-order = "off"
 
 [tool.ty.rules]
 all = "error"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
