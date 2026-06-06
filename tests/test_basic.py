@@ -41,6 +41,7 @@ from typing import Optional
 import pytest
 import rattler.networking
 import tqdm
+from typing_extensions import override
 
 import pooch_rattler
 
@@ -153,6 +154,7 @@ class _MinimalProgressDisplay:
         self.count: int = 0
         self.total: Optional[int] = total  # noqa: FA100
 
+    @override
     def __repr__(self) -> str:
         return str(self.count) + "/" + str(self.total)
 
