@@ -188,7 +188,7 @@ class RattlerDownloader(_BaseDownloader):
         self._client = rattler.Client(
             list(middlewares) if middlewares else None,
             dict(headers) if headers else None,
-            timeout,
+            timeout=timeout,
         )
 
     @override
@@ -258,7 +258,7 @@ class ResumableDownloader(_BaseDownloader):
             client = rattler.Client(
                 [*self._middlewares, _add_range_header(f)],
                 self._headers,
-                self._timeout,
+                timeout=self._timeout,
             )
             for _ in range(self._max_retries + 1):
                 try:
