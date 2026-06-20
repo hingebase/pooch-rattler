@@ -182,7 +182,7 @@ class RattlerDownloader(_BaseDownloader):
             rattler.networking.S3Middleware,
         ],
         headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[int] = pooch.downloaders.DEFAULT_TIMEOUT,
+        timeout: Optional[int] = None,
     ) -> None:
         super().__init__()
         self._client = rattler.Client(
@@ -233,7 +233,7 @@ class ResumableDownloader(_BaseDownloader):
             rattler.networking.S3Middleware,
         ],
         headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[int] = pooch.downloaders.DEFAULT_TIMEOUT,
+        timeout: Optional[int] = None,
         max_retries: int = 3,
     ) -> None:
         super().__init__()
