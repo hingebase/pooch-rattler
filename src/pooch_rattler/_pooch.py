@@ -187,7 +187,7 @@ class RattlerDownloader(_BaseDownloader):
         super().__init__()
         self._client = rattler.Client(
             list(middlewares) if middlewares else None,
-            dict(headers) if headers else None,
+            _headers(headers),
             timeout=timeout,
         )
 
@@ -238,7 +238,7 @@ class ResumableDownloader(_BaseDownloader):
     ) -> None:
         super().__init__()
         self._middlewares = middlewares
-        self._headers = dict(headers) if headers else None
+        self._headers = _headers(headers)
         self._timeout = timeout
         self._max_retries = max(max_retries, 0)
 
@@ -346,6 +346,15 @@ def _add_range_header(f: BinaryIO) -> rattler.networking.AddHeadersMiddleware:
         return None
     initial = f.tell()
     return rattler.networking.AddHeadersMiddleware(callback)
+
+
+def _headers(headers: Optional[Mapping[str, str]]) -> Optional[dict[str, str]]:
+    if not headers:
+        return None
+    if "user-agent" in map(str.lower, headers):
+        return dict(headers)
+    # https://github.com/conda/rattler/blob/py-rattler-v0.25.0/py-rattler/src/networking/client.rs#L58-L59
+    return {"User-Agent": f"py-rattler/{rattler.__version__}", **headers}
 
 
 def _is_path_like(output_file: object) -> TypeIs[os.PathLike[str]]:
