@@ -4,14 +4,14 @@ build-backend = "uv_build"
 
 [project]
 name = "pooch-rattler"
-version = "0.3.1"
+version = "0.3.2"
 description = "Pooch downloader powered by Rattler"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "BSD-3-Clause"
 keywords = ["data", "download", "caching", "http"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Framework :: AnyIO",
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
