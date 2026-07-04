@@ -33,6 +33,7 @@
 import base64
 import contextlib
 import multiprocessing as mp
+import socket
 import sys
 import time
 from collections.abc import Callable, Iterator, Mapping
@@ -47,13 +48,22 @@ _BASE64 = base64.b64encode(b"test-user:test-password").decode("ascii")
 
 
 @pytest.fixture(scope="package")
-def test_server() -> Iterator[None]:
-    """Set up the test server."""
+def server_port() -> Iterator[int]:
+    """Set up the test server.
+
+    Yields:
+        int: The port number of the test server.
+
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("127.0.0.1", 0))
+        port: int = sock.getsockname()[1]
     # https://github.com/RUSTxPY/BustAPI/blob/main/tests/test_examples.py
-    with contextlib.closing(mp.Process(target=_main)) as proc:
+    with contextlib.closing(mp.Process(target=_main, args=(port,))) as proc:
         proc.start()
         time.sleep(2)
-        yield
+        yield port
         proc.kill()
         proc.join()
 
@@ -68,7 +78,7 @@ def _get_headers() -> Mapping[str, str]:
     return bustapi.request.headers
 
 
-def _main() -> None:
+def _main(port: int) -> None:
     app = bustapi.BustAPI()
     post = _post(app)
     route = _route(app)
@@ -95,7 +105,7 @@ def _main() -> None:
     route("/test-s3-compatible/api")(lambda: _auth(
         b"X-Amz-Credential=test-access-key-id" in bustapi.request.query_string,
     ))
-    app.run(load_dotenv=False)  # pyright: ignore[reportUnknownMemberType]
+    app.run(port=port, load_dotenv=False)  # pyright: ignore[reportUnknownMemberType]
 
 
 def _partial_response() -> Iterator[str]:

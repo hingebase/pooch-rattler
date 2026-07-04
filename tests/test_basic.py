@@ -47,10 +47,8 @@ import pooch_rattler
 
 _OK = hashlib.sha256(b"OK").hexdigest()
 
-pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("test_server")
 
-
-def test_headers(tmp_path: pathlib.Path) -> None:
+def test_headers(server_port: int, tmp_path: pathlib.Path) -> None:
     """Test sending HTTP headers."""
     pooch_rattler.Downloader(
         rattler.networking.AddHeadersMiddleware(_add_headers),
@@ -59,7 +57,7 @@ def test_headers(tmp_path: pathlib.Path) -> None:
             "Test-Dynamic": "static",
         },
     ).retrieve(
-        "http://127.0.0.1:5000/test-headers",
+        f"http://127.0.0.1:{server_port}/test-headers",
         known_hash=_OK,
         path=tmp_path,
     )
@@ -68,6 +66,7 @@ def test_headers(tmp_path: pathlib.Path) -> None:
 @pytest.mark.parametrize("anyio_backend", ["asyncio"])
 async def test_parallel(
     anyio_backend_name: str,
+    server_port: int,
     tmp_path: pathlib.Path,
 ) -> None:
     """Download tasks should run concurrently."""
@@ -75,13 +74,13 @@ async def test_parallel(
     downloader = pooch_rattler.Downloader()
     coro1 = asyncio.to_thread(
         downloader.retrieve,
-        "http://127.0.0.1:5000/sleep1",
+        f"http://127.0.0.1:{server_port}/sleep1",
         known_hash=_OK,
         path=tmp_path,
     )
     coro2 = asyncio.to_thread(
         downloader.retrieve,
-        "http://127.0.0.1:5000/sleep2",
+        f"http://127.0.0.1:{server_port}/sleep2",
         known_hash=_OK,
         path=tmp_path,
     )
@@ -100,21 +99,24 @@ def test_progress() -> None:
     assert issubclass(_MinimalProgressDisplay, pooch_rattler.Progress)
 
 
-def test_retry_with_different_mirrors(tmp_path: pathlib.Path) -> None:
+def test_retry_with_different_mirrors(
+    server_port: int,
+    tmp_path: pathlib.Path,
+) -> None:
     """The mirror URLs should be accessed in sequence."""
     pooch_rattler.Downloader(
         rattler.networking.RetryMiddleware(max_retries=2),
         rattler.networking.MirrorMiddleware({
-            "http://127.0.0.1:5000/test-retry": [
-                "http://127.0.0.1:5000/503/",
-                "http://127.0.0.1:5000/sleep/",
-                "http://127.0.0.1:5000/200/",
+            f"http://127.0.0.1:{server_port}/test-retry": [
+                f"http://127.0.0.1:{server_port}/503/",
+                f"http://127.0.0.1:{server_port}/sleep/",
+                f"http://127.0.0.1:{server_port}/200/",
             ],
         }),
         rattler.networking.AddHeadersMiddleware(_EnsureRequestPath()),
         timeout=1,
     ).retrieve(
-        "http://127.0.0.1:5000/test-retry",
+        f"http://127.0.0.1:{server_port}/test-retry",
         known_hash=_OK,
         path=tmp_path,
     )
@@ -124,10 +126,10 @@ def test_retry_with_different_mirrors(tmp_path: pathlib.Path) -> None:
     sys.version_info < (3, 10),
     reason="StreamingResponse was introduced in BustAPI 0.6.0",
 )
-def test_resume(tmp_path: pathlib.Path) -> None:
+def test_resume(server_port: int, tmp_path: pathlib.Path) -> None:
     """Test resumption from partial downloaded file."""
     pooch_rattler.ResumableDownloader().retrieve(
-        "http://127.0.0.1:5000/test-resume",
+        f"http://127.0.0.1:{server_port}/test-resume",
         known_hash=_OK,
         path=tmp_path,
     )

@@ -43,11 +43,10 @@ import pooch_rattler
 
 _OK = hashlib.sha256(b"OK").hexdigest()
 
-pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("test_server")
-
 
 def test_basic_http(
     monkeypatch: pytest.MonkeyPatch,
+    server_port: int,
     tmp_path: pathlib.Path,
 ) -> None:
     """Test basic HTTP authentication."""
@@ -63,7 +62,7 @@ def test_basic_http(
     pooch_rattler.Downloader(
         rattler.networking.AuthenticationMiddleware(),
     ).retrieve(
-        "http://127.0.0.1:5000/test-basic-http",
+        f"http://127.0.0.1:{server_port}/test-basic-http",
         known_hash=_OK,
         path=tmp_path,
     )
@@ -71,6 +70,7 @@ def test_basic_http(
 
 def test_bearer_token(
     monkeypatch: pytest.MonkeyPatch,
+    server_port: int,
     tmp_path: pathlib.Path,
 ) -> None:
     """Test authentication with Bearer token."""
@@ -83,13 +83,17 @@ def test_bearer_token(
     pooch_rattler.Downloader(
         rattler.networking.AuthenticationMiddleware(),
     ).retrieve(
-        "http://127.0.0.1:5000/test-bearer-token",
+        f"http://127.0.0.1:{server_port}/test-bearer-token",
         known_hash=_OK,
         path=tmp_path,
     )
 
 
-def test_gcs(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
+def test_gcs(
+    monkeypatch: pytest.MonkeyPatch,
+    server_port: int,
+    tmp_path: pathlib.Path,
+) -> None:
     """Fetch some data from Google Cloud Storage.
 
     Keep in mind that public storages can be directly accessed via
@@ -100,7 +104,7 @@ def test_gcs(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
         "client_id": "test-client-id",
         "client_secret": "test-client-secret",
         "refresh_token": "test-refresh-token",
-        "token_uri": "http://127.0.0.1:5000/test-gcs/token",
+        "token_uri": f"http://127.0.0.1:{server_port}/test-gcs/token",
         "quota_project_id": "test-project",
     }
     adc_path = tmp_path / "application_default_credentials.json"
@@ -113,7 +117,7 @@ def test_gcs(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
         # Redirect the request to avoid Internet access
         rattler.networking.MirrorMiddleware({
             "https://storage.googleapis.com": [
-                "http://127.0.0.1:5000",
+                f"http://127.0.0.1:{server_port}",
             ],
         }),
     ).retrieve(
@@ -125,6 +129,7 @@ def test_gcs(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
 
 def test_oauth(
     monkeypatch: pytest.MonkeyPatch,
+    server_port: int,
     tmp_path: pathlib.Path,
 ) -> None:
     """Test authentication with OAuth."""
@@ -134,7 +139,7 @@ def test_oauth(
                 "access_token": "test-access-token",
                 "refresh_token": "test-refresh-token",
                 "expires_at": int(time.time()) - 300,
-                "token_endpoint": "http://127.0.0.1:5000/test-oauth/token",
+                "token_endpoint": f"http://127.0.0.1:{server_port}/test-oauth/token",
                 "client_id": "test-client-id",
             },
         },
@@ -143,7 +148,7 @@ def test_oauth(
     pooch_rattler.Downloader(
         rattler.networking.AuthenticationMiddleware(),
     ).retrieve(
-        "http://127.0.0.1:5000/test-oauth/api",
+        f"http://127.0.0.1:{server_port}/test-oauth/api",
         known_hash=_OK,
         path=tmp_path,
     )
@@ -157,6 +162,7 @@ def test_oauth(
 
 def test_s3_compatible(
     monkeypatch: pytest.MonkeyPatch,
+    server_port: int,
     tmp_path: pathlib.Path,
 ) -> None:
     """Fetch some data from AWS S3-compatible cloud storage.
@@ -176,7 +182,7 @@ def test_s3_compatible(
     pooch_rattler.Downloader(
         rattler.networking.S3Middleware({
             "test-s3-compatible": rattler.networking.middleware.S3Config(
-                endpoint_url="http://127.0.0.1:5000",
+                endpoint_url=f"http://127.0.0.1:{server_port}",
                 region="eu-central-1",
                 force_path_style=True,
             ),
