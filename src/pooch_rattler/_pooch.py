@@ -40,7 +40,7 @@ import contextlib
 import functools
 import os
 import pathlib
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Callable, Coroutine, Mapping
 from typing import TYPE_CHECKING, BinaryIO, Optional, TypeVar, Union, cast
 
 import anyio.from_thread
@@ -54,6 +54,7 @@ from pooch.typing import (  # pyright: ignore[reportMissingTypeStubs]
     Processor,
 )
 from typing_extensions import (
+    Any,
     Literal,
     Protocol,
     TypeIs,
@@ -370,7 +371,7 @@ def _open_output_file(
 
 
 def _syncify(
-    func: Callable[[Unpack[_Ts]], Awaitable[None]],
+    func: Callable[[Unpack[_Ts]], Coroutine[Any, Any, None]],
     *args: Unpack[_Ts],
     token: Optional[anyio.lowlevel.EventLoopToken],
 ) -> None:

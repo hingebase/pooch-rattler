@@ -2,11 +2,11 @@
 channels = ["conda-forge"]
 platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
 preview = ["pixi-build"]
-requires-pixi = ">=0.63.0"
+requires-pixi = ">=0.71.0"
 
 [package.build.backend]
 name = "pixi-build-python"
-version = ">=0.4.4"
+version = ">=0.6.0"
 channels = ["conda-forge"]
 
 [package.build.config]
@@ -21,25 +21,25 @@ pooch = ">=1.9.0,<2.0.0"
 py-rattler = ">=0.23.1,<2.0.0"
 typing-extensions = ">=4.14.0,<5.0.0"
 
-[package.target.unix.run-dependencies]  # tombi: lint.rules.key-not-allowed.disabled = true
+[package.run-dependencies."if(unix)"]
 uvloop = ">=0.22.1,<2.0.0"
 
-[package.target.win.run-dependencies]  # tombi: lint.rules.key-not-allowed.disabled = true
+[package.run-dependencies."if(win)"]
 winloop = ">=0.3.1,<2.0.0"
 
 [dependencies]
-basedpyright = ">=1.39.6"
+basedpyright = ">=1.39.8"
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
 pytest = ">=8.4.2"
 tqdm = ">=4.67.2"
 trio = ">=0.31.0"
-ty = ">=0.0.44"
+ty = ">=0.0.55"
 types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
 bustapi = ">=0.9.2,!=0.13.0"
-pyrefly = ">=1.1.0dev1"
+pyrefly = ">=1.1.1"
 
 [environments]
 # conda-forge has dropped support for Python 3.9
@@ -49,7 +49,7 @@ py314 = ["py314"]
 
 [feature.py310.dependencies]
 python-gil = "3.10.*"
-ruff = ">=0.15.16"
+ruff = ">=0.15.20"
 
 [feature.py314.dependencies]
 python-gil = "3.14.*"
