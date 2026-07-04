@@ -55,7 +55,7 @@ ruff = ">=0.15.20"
 python-gil = "3.14.*"
 
 [tasks]
-pytest = "pytest"
+pytest = "pytest -Werror"
 test = [
     { task = "pytest", environment = "default" },
     { task = "pytest", environment = "py314" },
