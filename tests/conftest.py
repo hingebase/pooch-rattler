@@ -139,8 +139,8 @@ def _test_gcs_token() -> dict[str, str]:
     _auth(
         body["grant_type"] == "refresh_token",
         body["client_id"] == "test-client-id",
-        body["client_secret"] == "test-client-secret",  # noqa: S105
-        body["refresh_token"] == "test-refresh-token",  # noqa: S105
+        body["client_secret"] == "test-client-secret",  # ruff: ignore[hardcoded-password-string]
+        body["refresh_token"] == "test-refresh-token",  # ruff: ignore[hardcoded-password-string]
         body["scopes"] == "https://www.googleapis.com/auth/devstorage.read_only",
     )
     return {
@@ -166,7 +166,7 @@ def _test_oauth_token() -> dict[str, Any]:
         _auth(
             body["grant_type"] == "refresh_token",
             body["client_id"] == "test-client-id",
-            body["refresh_token"] == "test-refresh-token",  # noqa: S105
+            body["refresh_token"] == "test-refresh-token",  # ruff: ignore[hardcoded-password-string]
         )
     return {
         "access_token": "refreshed-access-token",

@@ -33,7 +33,7 @@
 import contextlib
 import os
 import runpy
-import subprocess  # noqa: S404
+import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 from collections.abc import Generator
 from typing import NoReturn
@@ -50,7 +50,7 @@ else:
         def execvp(executable: str, args: list[str]) -> NoReturn:
             nonlocal patched
             patched = True
-            sys.exit(subprocess.call(args, executable=executable))  # noqa: S603
+            sys.exit(subprocess.call(args, executable=executable))  # ruff: ignore[subprocess-without-shell-equals-true]
         patched = False
         monkeypatch.setattr(os, "execvp", execvp)
         try:
