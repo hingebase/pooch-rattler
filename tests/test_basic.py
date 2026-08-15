@@ -90,7 +90,7 @@ async def test_parallel(
     await asyncio.gather(coro1, coro2)
     toc = time.monotonic()
     eps = toc - math.nextafter(toc, -math.inf)
-    assert 1-eps < toc-tic < 2-eps  # noqa: E226
+    assert 1-eps < toc-tic < 2-eps  # ruff: ignore[missing-whitespace-around-arithmetic-operator]
 
 
 def test_progress() -> None:
@@ -152,16 +152,16 @@ class _EnsureRequestPath:
 # Taken from https://www.fatiando.org/pooch/latest/progressbars.html#using-custom-progress-bars
 # with annotations added
 class _MinimalProgressDisplay:
-    def __init__(self, total: Optional[int]) -> None:  # noqa: FA100
+    def __init__(self, total: Optional[int]) -> None:  # ruff: ignore[future-rewritable-type-annotation]
         self.count: int = 0
-        self.total: Optional[int] = total  # noqa: FA100
+        self.total: Optional[int] = total  # ruff: ignore[future-rewritable-type-annotation]
 
     @override
     def __repr__(self) -> str:
         return str(self.count) + "/" + str(self.total)
 
     def render(self) -> None:
-        print(f"\r{self}", file=sys.stderr, end="")  # noqa: T201
+        print(f"\r{self}", file=sys.stderr, end="")  # ruff: ignore[print]
 
     def update(self, i: int) -> None:
         self.count = i
@@ -170,8 +170,8 @@ class _MinimalProgressDisplay:
     def reset(self) -> None:
         self.count = 0
 
-    def close(self) -> None:  # noqa: PLR6301
-        print("", file=sys.stderr)  # noqa: FURB105, T201
+    def close(self) -> None:  # ruff: ignore[no-self-use]
+        print(file=sys.stderr)  # ruff: ignore[print]
 
 
 def _add_headers(host: str, path: str) -> dict[str, str]:

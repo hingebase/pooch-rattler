@@ -270,7 +270,7 @@ class ResumableDownloader(_BaseDownloader):
                         f,
                         token=self._token,
                     )
-                except BaseException as e:  # noqa: PERF203
+                except BaseException as e:  # ruff: ignore[try-except-in-loop]
                     e.__context__ = last_exc
                     if not isinstance(e, Exception):
                         raise
@@ -292,7 +292,7 @@ def choose_downloader(url: str, progressbar: Literal[False] = ...) -> Union[
 ]: ...
 
 @overload
-def choose_downloader(url: str, progressbar: Union[bool, Progress]) -> Union[  # noqa: FBT001
+def choose_downloader(url: str, progressbar: Union[bool, Progress]) -> Union[  # ruff: ignore[boolean-type-hint-positional-argument]
     RattlerDownloader,
     pooch.DOIDownloader,
     pooch.FTPDownloader,
@@ -308,7 +308,7 @@ def choose_downloader(url: str, progressbar: Union[bool, Progress]) -> Union[  #
 )
 def choose_downloader(
     url: str,
-    progressbar: Union[bool, Progress] = False,  # noqa: FBT001, FBT002
+    progressbar: Union[bool, Progress] = False,  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
 ) -> Union[
     RattlerDownloader,
     pooch.DOIDownloader,
@@ -324,7 +324,7 @@ def choose_downloader(
                 # Always create a new Rattler client which reflect
                 # environment changes
                 return RattlerDownloader(value, _retry)
-    return pooch.downloaders.choose_downloader(  # pyright: ignore[reportUnknownMemberType]
+    return pooch.downloaders.choose_downloader(  # pyright: ignore[reportUnknownMemberType]  # ty: ignore[unsound-return-statement]
         url,
         cast("bool", progressbar),
     )

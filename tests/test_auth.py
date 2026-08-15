@@ -155,8 +155,8 @@ def test_oauth(
     with rattler_auth_file.open(encoding="utf-8") as f:
         refreshed: dict[str, dict[str, _OAuth]] = json.load(f)
     oauth = refreshed["127.0.0.1"]["OAuth"]
-    assert oauth["access_token"] == "refreshed-access-token"  # noqa: S105
-    assert oauth["refresh_token"] == "refreshed-refresh-token"  # noqa: S105
+    assert oauth["access_token"] == "refreshed-access-token"  # ruff: ignore[hardcoded-password-string]
+    assert oauth["refresh_token"] == "refreshed-refresh-token"  # ruff: ignore[hardcoded-password-string]
     assert oauth["expires_at"] > time.time()
 
 
