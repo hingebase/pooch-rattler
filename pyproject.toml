@@ -48,6 +48,7 @@ dev = [
     "pyrefly >=1.2.0",
     "pytest >=8.4.2",
     "ruff >=0.16.3",
+    "tombi >=1.4.0; python_version >= '3.10'",
     "tqdm >=4.67.2",
     "ty >=0.0.72",
     "types-tqdm >=4.67.2",

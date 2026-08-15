@@ -31,10 +31,13 @@
 """Type checking and linting."""
 
 import contextlib
+import importlib.metadata
 import os
+import pathlib
 import runpy
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
+import sysconfig
 from collections.abc import Generator
 from typing import NoReturn
 
@@ -95,13 +98,41 @@ def test_ruff(monkeypatch: pytest.MonkeyPatch) -> None:
         _run_module("ruff")
 
 
+@pytest.mark.skipif(
+    os.getenv("PIXI_PROJECT_NAME") == "pooch-rattler"
+        and os.getenv("PIXI_ENVIRONMENT_NAME", "default") != "default",
+    reason="It's unnecessary to run Tombi for each Python environment",
+)
+def test_tombi() -> None:
+    """Linting with Tombi."""
+    if sys.version_info < (3, 10):
+        pytest.skip("Tombi requires Python 3.10 or later")
+    tombi = "tombi" + sysconfig.get_config_var("EXE")
+    try:
+        dist = importlib.metadata.distribution("tombi")
+    except ModuleNotFoundError:
+        pass
+    else:
+        if paths := dist.files:
+            for p in paths:
+                if p.name == tombi:
+                    resolved = dist.locate_file(p)
+                    if isinstance(resolved, pathlib.Path):
+                        tombi = resolved
+                    break
+    subprocess.run([tombi, "lint"], check=True)  # ruff: ignore[subprocess-without-shell-equals-true]
+
+
 def test_ty(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with ty."""
     argv = ["ty", "check", "--python", sys.executable]
     if sys.version_info < (3, 10):
         # https://github.com/pytest-dev/pytest/pull/13445
         # Merged in pytest 9.0.0 which dropped Python 3.9 support
-        argv += ["--ignore", "invalid-argument-type"]
+        argv += [
+            "--ignore", "invalid-argument-type",
+            "--ignore", "too-many-positional-arguments",
+        ]
     monkeypatch.setattr(sys, "argv", argv)
     with _astral_context(monkeypatch):
         _run_module("ty")
