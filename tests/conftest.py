@@ -75,7 +75,7 @@ def _auth(*requirements: bool) -> str:
 
 
 def _get_headers() -> Mapping[str, str]:
-    return bustapi.request.headers
+    return bustapi.request.headers  # ty: ignore[unsound-return-statement]
 
 
 def _main(port: int) -> None:

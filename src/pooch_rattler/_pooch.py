@@ -324,7 +324,7 @@ def choose_downloader(
                 # Always create a new Rattler client which reflect
                 # environment changes
                 return RattlerDownloader(value, _retry)
-    return pooch.downloaders.choose_downloader(  # pyright: ignore[reportUnknownMemberType]
+    return pooch.downloaders.choose_downloader(  # pyright: ignore[reportUnknownMemberType]  # ty: ignore[unsound-return-statement]
         url,
         cast("bool", progressbar),
     )
