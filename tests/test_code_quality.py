@@ -75,15 +75,12 @@ def test_pyrefly(monkeypatch: pytest.MonkeyPatch) -> None:
     if sys.version_info < (3, 10):
         # BustAPI 0.2.1 lacks many features
         argv += ["--ignore", "missing-attribute"]
-    monkeypatch.setattr(sys, "argv", argv)
-    _run_module("pyrefly")
+    _run_pyrefly(argv, monkeypatch)
 
 
 def test_pyrefly_coverage(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type coverage checking with pyrefly."""
-    argv = ["pyrefly", "coverage", "check", "--strict"]
-    monkeypatch.setattr(sys, "argv", argv)
-    _run_module("pyrefly")
+    _run_pyrefly(["pyrefly", "coverage", "check", "--strict"], monkeypatch)
 
 
 @pytest.mark.skipif(
@@ -151,3 +148,13 @@ def _run_module(module_name: str) -> None:
     else:
         return
     assert code == 0
+
+
+def _run_pyrefly(args: list[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    try:
+        importlib.metadata.distribution("pyrefly")
+    except ModuleNotFoundError:
+        subprocess.run(args, check=True)  # ruff: ignore[subprocess-without-shell-equals-true]
+    else:
+        monkeypatch.setattr(sys, "argv", args)
+        _run_module("pyrefly")

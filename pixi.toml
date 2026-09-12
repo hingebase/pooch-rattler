@@ -33,6 +33,7 @@ winloop = ">=0.3.1,<2.0.0"
 [dependencies]
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
+pyrefly = ">=1.3.0"
 pytest = ">=8.4.2"
 tqdm = ">=4.67.2"
 trio = ">=0.31.0"
@@ -41,7 +42,6 @@ types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
 bustapi = ">=0.9.2,!=0.13.0"
-pyrefly = ">=1.3.0"
 
 [environments]
 # conda-forge has dropped support for Python 3.9
