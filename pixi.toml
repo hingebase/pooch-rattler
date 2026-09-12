@@ -31,7 +31,6 @@ uvloop = ">=0.22.1,<2.0.0"
 winloop = ">=0.3.1,<2.0.0"
 
 [dependencies]
-basedpyright = ">=1.40.0"
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
 pytest = ">=8.4.2"
@@ -55,7 +54,11 @@ python-gil = "3.10.*"
 ruff = ">=0.16.7"
 tombi = ">=1.5.2"
 
+[feature.py310.pypi-dependencies]
+basedpyright = ">=1.40.1"
+
 [feature.py314.dependencies]
+basedpyright = ">=1.40.0"
 python-gil = "3.14.*"
 
 [tasks]
