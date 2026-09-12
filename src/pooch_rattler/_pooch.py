@@ -193,7 +193,7 @@ class RattlerDownloader(_BaseDownloader):
         )
 
     @override
-    def __call__(  # ty: ignore[invalid-method-override]
+    def __call__(  # pyrefly: ignore[bad-override-param-name]  # ty: ignore[invalid-method-override]
         self,
         url: str,
         output_file: object,
@@ -244,7 +244,7 @@ class ResumableDownloader(_BaseDownloader):
         self._max_retries = max(max_retries, 0)
 
     @override
-    def __call__(  # ty: ignore[invalid-method-override]
+    def __call__(  # pyrefly: ignore[bad-override-param-name]  # ty: ignore[invalid-method-override]
         self,
         url: str,
         output_file: object,

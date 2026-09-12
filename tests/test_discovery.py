@@ -90,7 +90,7 @@ def _middleware(host: str, path: str) -> None:
 
 async def _test_anyio_asyncio(downloader: pooch_rattler.Downloader) -> None:
     try:
-        await anyio.to_thread.run_sync(  # pyrefly: ignore[incompatible-overload-residual]
+        await anyio.to_thread.run_sync(
             downloader.retrieve,
             "https://example.com/index.html",
         )
@@ -106,7 +106,7 @@ async def _test_anyio_asyncio(downloader: pooch_rattler.Downloader) -> None:
 
 async def _test_anyio_trio(downloader: pooch_rattler.Downloader) -> None:
     try:
-        await anyio.to_thread.run_sync(  # pyrefly: ignore[incompatible-overload-residual]
+        await anyio.to_thread.run_sync(
             downloader.retrieve,
             "https://example.com/index.html",
         )
@@ -136,7 +136,7 @@ async def _test_bare_asyncio() -> None:
 
 async def _test_bare_trio() -> None:
     try:
-        await trio.to_thread.run_sync(  # pyrefly: ignore[incompatible-overload-residual]
+        await trio.to_thread.run_sync(
             pooch_rattler.Downloader(_middleware).retrieve,
             "https://example.com/index.html",
         )

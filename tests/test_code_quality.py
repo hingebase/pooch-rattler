@@ -133,9 +133,14 @@ def test_ty(monkeypatch: pytest.MonkeyPatch) -> None:
             "--ignore", "invalid-argument-type",
             "--ignore", "too-many-positional-arguments",
         ]
-    monkeypatch.setattr(sys, "argv", argv)
-    with _astral_context(monkeypatch):
-        _run_module("ty")
+    try:
+        importlib.metadata.distribution("ty")
+    except ModuleNotFoundError:
+        subprocess.run(argv, check=True)  # ruff: ignore[subprocess-without-shell-equals-true]
+    else:
+        monkeypatch.setattr(sys, "argv", argv)
+        with _astral_context(monkeypatch):
+            _run_module("ty")
 
 
 def _run_module(module_name: str) -> None:

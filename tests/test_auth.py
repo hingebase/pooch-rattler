@@ -34,7 +34,7 @@ import hashlib
 import json
 import pathlib
 import time
-from typing import Any, TypedDict
+from typing import Any
 
 import pytest
 import rattler.networking.middleware
@@ -153,7 +153,7 @@ def test_oauth(
         path=tmp_path,
     )
     with rattler_auth_file.open(encoding="utf-8") as f:
-        refreshed: dict[str, dict[str, _OAuth]] = json.load(f)
+        refreshed = json.load(f)
     oauth = refreshed["127.0.0.1"]["OAuth"]
     assert oauth["access_token"] == "refreshed-access-token"  # ruff: ignore[hardcoded-password-string]
     assert oauth["refresh_token"] == "refreshed-refresh-token"  # ruff: ignore[hardcoded-password-string]
@@ -192,12 +192,6 @@ def test_s3_compatible(
         known_hash=_OK,
         path=tmp_path,
     )
-
-
-class _OAuth(TypedDict):
-    access_token: str
-    refresh_token: str
-    expires_at: int
 
 
 def _temp_auth_file(
