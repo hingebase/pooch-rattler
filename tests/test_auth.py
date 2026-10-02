@@ -34,13 +34,15 @@ import hashlib
 import json
 import pathlib
 import time
-from typing import Any, TypedDict
+from typing import Any
 
+import packaging.version
 import pytest
 import rattler.networking.middleware
 
 import pooch_rattler
 
+_0_27_0 = packaging.version.parse("0.27.0")
 _OK = hashlib.sha256(b"OK").hexdigest()
 
 
@@ -153,7 +155,7 @@ def test_oauth(
         path=tmp_path,
     )
     with rattler_auth_file.open(encoding="utf-8") as f:
-        refreshed: dict[str, dict[str, _OAuth]] = json.load(f)
+        refreshed = json.load(f)
     oauth = refreshed["127.0.0.1"]["OAuth"]
     assert oauth["access_token"] == "refreshed-access-token"  # ruff: ignore[hardcoded-password-string]
     assert oauth["refresh_token"] == "refreshed-refresh-token"  # ruff: ignore[hardcoded-password-string]
@@ -179,12 +181,18 @@ def test_s3_compatible(
         },
     }
     _temp_auth_file(credentials, monkeypatch, tmp_path)
+    kwargs: dict[str, Any] = {}
+    # https://github.com/conda/rattler/releases/tag/py-rattler-v0.27.0
+    if packaging.version.parse(rattler.__version__) >= _0_27_0:
+        kwargs["addressing_style"] = "path"
+    else:
+        kwargs["force_path_style"] = True
     pooch_rattler.Downloader(
         rattler.networking.S3Middleware({
             "test-s3-compatible": rattler.networking.middleware.S3Config(
                 endpoint_url=f"http://127.0.0.1:{server_port}",
                 region="eu-central-1",
-                force_path_style=True,
+                **kwargs,
             ),
         }),
     ).retrieve(
@@ -192,12 +200,6 @@ def test_s3_compatible(
         known_hash=_OK,
         path=tmp_path,
     )
-
-
-class _OAuth(TypedDict):
-    access_token: str
-    refresh_token: str
-    expires_at: int
 
 
 def _temp_auth_file(

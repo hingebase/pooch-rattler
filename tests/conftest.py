@@ -58,12 +58,12 @@ def server_port() -> Iterator[int]:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("127.0.0.1", 0))
-        port: int = sock.getsockname()[1]
+        port = sock.getsockname()[1]
     # https://github.com/RUSTxPY/BustAPI/blob/main/tests/test_examples.py
     with contextlib.closing(mp.Process(target=_main, args=(port,))) as proc:
         proc.start()
         time.sleep(2)
-        yield port
+        yield port  # ty: ignore[unsound-yield]
         proc.kill()
         proc.join()
 
@@ -135,7 +135,7 @@ def _test_gcs() -> str:
 
 
 def _test_gcs_token() -> dict[str, str]:
-    body: Mapping[str, str] = bustapi.request.json
+    body = bustapi.request.json
     _auth(
         body["grant_type"] == "refresh_token",
         body["client_id"] == "test-client-id",
