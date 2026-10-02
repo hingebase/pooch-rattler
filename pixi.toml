@@ -33,11 +33,11 @@ winloop = ">=0.3.1,<2.0.0"
 [dependencies]
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
-pyrefly = ">=1.3.0"
+pyrefly = ">=1.3.2"
 pytest = ">=8.4.2"
 tqdm = ">=4.67.2"
 trio = ">=0.31.0"
-ty = ">=0.0.80"
+ty = ">=0.0.84"
 types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
@@ -51,14 +51,14 @@ py314 = ["py314"]
 
 [feature.py310.dependencies]
 python-gil = "3.10.*"
-ruff = ">=0.16.7"
-tombi = ">=1.5.2"
+ruff = ">=0.16.9"
+tombi = ">=1.7.0"
 
 [feature.py310.pypi-dependencies]
 basedpyright = ">=1.40.1"
 
 [feature.py314.dependencies]
-basedpyright = ">=1.40.0"
+basedpyright = ">=1.40.1"
 python-gil = "3.14.*"
 
 [tasks]
