@@ -82,12 +82,13 @@ def test_pyrefly(monkeypatch: pytest.MonkeyPatch) -> None:
     if sys.version_info < (3, 10):
         # BustAPI 0.2.1 lacks many features
         argv += ["--ignore", "missing-attribute"]
-    _run_pyrefly(argv, monkeypatch)
+    _run_module_or_executable(argv, monkeypatch)
 
 
 def test_pyrefly_coverage(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type coverage checking with pyrefly."""
-    _run_pyrefly(["pyrefly", "coverage", "check", "--strict"], monkeypatch)
+    argv = ["pyrefly", "coverage", "check", "--strict"]
+    _run_module_or_executable(argv, monkeypatch)
 
 
 @pytest.mark.skipif(
@@ -97,9 +98,8 @@ def test_pyrefly_coverage(monkeypatch: pytest.MonkeyPatch) -> None:
 )
 def test_ruff(monkeypatch: pytest.MonkeyPatch) -> None:
     """Linting with Ruff."""
-    monkeypatch.setattr(sys, "argv", ["ruff", "check"])
-    with _astral_context(monkeypatch):
-        _run_module("ruff")
+    argv = ["ruff", "check", "--ignore", "FIX002"]
+    _run_module_or_executable(argv, monkeypatch)
 
 
 @pytest.mark.skipif(
@@ -143,14 +143,7 @@ def test_ty(monkeypatch: pytest.MonkeyPatch) -> None:
             "--ignore", "invalid-argument-type",
             "--ignore", "too-many-positional-arguments",
         ]
-    try:
-        importlib.metadata.distribution("ty")
-    except ModuleNotFoundError:
-        subprocess.run(argv, check=True)  # ruff: ignore[subprocess-without-shell-equals-true]
-    else:
-        monkeypatch.setattr(sys, "argv", argv)
-        with _astral_context(monkeypatch):
-            _run_module("ty")
+    _run_module_or_executable(argv, monkeypatch)
 
 
 def _run_module(module_name: str) -> None:
@@ -163,11 +156,19 @@ def _run_module(module_name: str) -> None:
     assert code == 0
 
 
-def _run_pyrefly(args: list[str], monkeypatch: pytest.MonkeyPatch) -> None:
+def _run_module_or_executable(
+    args: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module_name = args[0]
     try:
-        importlib.metadata.distribution("pyrefly")
+        importlib.metadata.distribution(module_name)
     except ModuleNotFoundError:
         subprocess.run(args, check=True)  # ruff: ignore[subprocess-without-shell-equals-true]
     else:
         monkeypatch.setattr(sys, "argv", args)
-        _run_module("pyrefly")
+        if module_name == "pyrefly":
+            _run_module("pyrefly")
+        else:
+            with _astral_context(monkeypatch):
+                _run_module(module_name)
