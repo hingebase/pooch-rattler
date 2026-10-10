@@ -42,6 +42,7 @@ from collections.abc import Generator
 from typing import NoReturn
 
 import pytest
+from nodejs_wheel import executable
 
 if sys.platform == "win32":
     from contextlib import (
@@ -64,6 +65,12 @@ else:
 
 def test_basedpyright(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with basedpyright."""
+    if (
+        os.getenv("PIXI_PROJECT_NAME") == "pooch-rattler"
+        and sys.platform == "win32"
+        and sys.version_info >= (3, 15)
+    ):
+        executable.ROOT_DIR = os.environ["CONDA_PREFIX"]
     argv = ["basedpyright", "--pythonpath", sys.executable]
     monkeypatch.setattr(sys, "argv", argv)
     _run_module("basedpyright")
@@ -120,6 +127,12 @@ def test_tombi() -> None:
     subprocess.run([tombi, "lint"], check=True)  # ruff: ignore[subprocess-without-shell-equals-true]
 
 
+@pytest.mark.xfail(
+    os.getenv("PIXI_PROJECT_NAME") == "pooch-rattler"
+        and sys.platform == "win32"
+        and sys.version_info >= (3, 15),
+    reason="https://conda-forge.org/blog/2026/09/03/python-315/",
+)
 def test_ty(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with ty."""
     argv = ["ty", "check", "--python", sys.executable]
