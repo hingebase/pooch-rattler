@@ -48,11 +48,7 @@ import anyio.lowlevel
 import pooch.downloaders  # pyright: ignore[reportMissingTypeStubs]
 import rattler.networking
 import rattler.package_streaming
-from pooch.typing import (  # pyright: ignore[reportMissingTypeStubs]
-    Action,
-    Downloader,
-    Processor,
-)
+from pooch.typing import Action, Downloader, Processor  # pyright: ignore[reportMissingTypeStubs]
 from typing_extensions import (
     Any,
     Literal,

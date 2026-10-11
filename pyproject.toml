@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv-build >=0.12.0,<0.13.0"]
+requires = ["uv-build >=0.13.0,<0.14.0"]
 build-backend = "uv_build"
 
 [project]
@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
@@ -47,10 +48,10 @@ dev = [
     "nodejs-wheel-binaries <=22.20.0; sys_platform == 'darwin' and platform_release < '22'",
     "pyrefly >=1.3.2",
     "pytest >=8.4.2",
-    "ruff >=0.16.10",
-    "tombi >=1.7.0; python_version >= '3.10'",
+    "ruff >=0.17.0",
+    "tombi >=1.8.0; python_version >= '3.10'",
     "tqdm >=4.67.2",
-    "ty >=0.0.84",
+    "ty >=0.0.86",
     "types-tqdm >=4.67.2",
 ]
 
@@ -91,6 +92,7 @@ tables-out-of-order = "off"
 
 [tool.ty.rules]
 all = "error"
+truthiness-test-of-none-union = "ignore"
 
 [[tool.uv.index]]
 name = "testpypi"
