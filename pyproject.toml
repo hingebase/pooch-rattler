@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv-build >=0.13.0,<0.14.0"]
+requires = ["uv-build >=0.13.4,<0.14.0"]
 build-backend = "uv_build"
 
 [project]
@@ -7,7 +7,7 @@ name = "pooch-rattler"
 version = "0.3.2"
 description = "Pooch downloader powered by Rattler"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "BSD-3-Clause"
 keywords = ["data", "download", "caching", "http"]
 classifiers = [
@@ -18,7 +18,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -30,10 +29,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "anyio >=4.12.0,<5.0.0",
+    "anyio >=4.14.0,<5.0.0",
     "pooch >=1.9.0,<2.0.0",
-    "py-rattler >=0.23.1,<2.0.0",
-    "typing-extensions >=4.14.0,<5.0.0",
+    "py-rattler >=0.28.0,<2.0.0",
+    "typing-extensions >=4.16.0,<5.0.0",
     "uvloop >=0.22.1,<2.0.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation != 'PyPy'",
     "winloop >=0.3.1,<2.0.0; sys_platform == 'win32' and platform_python_implementation != 'PyPy'",
 ]
@@ -41,15 +40,14 @@ dependencies = [
 [dependency-groups]
 dev = [
     "anyio[trio]",
-    "basedpyright >=1.39.10",
-    "bustapi >=0.2.1,!=0.13.0",
-    "bustapi >=0.9.2; python_version >= '3.10'",
+    "basedpyright >=1.40.2",
+    "bustapi >=0.15.0",
     "nodejs-wheel-binaries <=20.18.0; sys_platform == 'darwin' and platform_release < '20'",
     "nodejs-wheel-binaries <=22.20.0; sys_platform == 'darwin' and platform_release < '22'",
     "pyrefly >=1.4.0",
-    "pytest >=8.4.2",
+    "pytest >=9.1.1",
     "ruff >=0.17.2",
-    "tombi >=1.9.3; python_version >= '3.10'",
+    "tombi >=1.9.3",
     "tqdm >=4.67.2",
     "ty >=0.0.91",
     "types-tqdm >=4.67.2",
@@ -81,7 +79,6 @@ preview = true
 select = ["ALL"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/pooch_rattler/_pooch.py" = ["future-rewritable-type-annotation"]
 "tests/**/*.py" = ["assert", "implicit-namespace-package"]
 
 [tool.ruff.lint.pycodestyle]
@@ -93,6 +90,9 @@ tables-out-of-order = "off"
 [tool.ty.rules]
 all = "error"
 truthiness-test-of-none-union = "ignore"
+
+[tool.uv]
+required-version = ">=0.13.4"
 
 [[tool.uv.index]]
 name = "testpypi"

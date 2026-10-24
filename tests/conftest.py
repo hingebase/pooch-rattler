@@ -34,7 +34,6 @@ import base64
 import contextlib
 import multiprocessing as mp
 import socket
-import sys
 import time
 from collections.abc import Callable, Iterator, Mapping
 from typing import Any, TypeVar, cast
@@ -160,14 +159,12 @@ def _test_headers() -> str:
 
 
 def _test_oauth_token() -> dict[str, Any]:
-    if sys.version_info >= (3, 10):
-        # BustAPI <=0.2.1 cannot read request body other than JSON
-        body: Mapping[str, str] = bustapi.request.form
-        _auth(
-            body["grant_type"] == "refresh_token",
-            body["client_id"] == "test-client-id",
-            body["refresh_token"] == "test-refresh-token",  # ruff: ignore[hardcoded-password-string]
-        )
+    body = bustapi.request.form
+    _auth(
+        body["grant_type"] == "refresh_token",
+        body["client_id"] == "test-client-id",
+        body["refresh_token"] == "test-refresh-token",  # ruff: ignore[hardcoded-password-string]
+    )
     return {
         "access_token": "refreshed-access-token",
         "refresh_token": "refreshed-refresh-token",
@@ -176,8 +173,6 @@ def _test_oauth_token() -> dict[str, Any]:
 
 
 def _test_resume() -> bustapi.Response:
-    if sys.version_info < (3, 10):
-        raise NotImplementedError
     if _get_headers().get("Range") == "bytes=1-":
         return bustapi.PlainTextResponse("K", status_code=206)
     return bustapi.StreamingResponse(

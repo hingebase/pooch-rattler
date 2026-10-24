@@ -41,7 +41,7 @@ import functools
 import os
 import pathlib
 from collections.abc import Callable, Coroutine, Mapping
-from typing import TYPE_CHECKING, BinaryIO, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar, cast
 
 import anyio.from_thread
 import anyio.lowlevel
@@ -51,7 +51,6 @@ import rattler.package_streaming
 from pooch.typing import Action, Downloader, Processor  # pyright: ignore[reportMissingTypeStubs]
 from typing_extensions import (
     Any,
-    Literal,
     Protocol,
     TypeIs,
     TypeVarTuple,
@@ -78,7 +77,7 @@ class Progress(Protocol):
 
 
 class _BaseDownloader(Downloader):
-    _token: Optional[anyio.lowlevel.EventLoopToken]
+    _token: anyio.lowlevel.EventLoopToken | None
 
     def __init__(self) -> None:
         try:
@@ -99,14 +98,14 @@ class _BaseDownloader(Downloader):
         self,
         fname: str,
         pooch: pooch.Pooch,
-        processor: Callable[[str, Action, Optional[pooch.Pooch]], _T],
+        processor: Callable[[str, Action, pooch.Pooch | None], _T],
     ) -> _T: ...
 
     def fetch(
         self,
         fname: str,
         pooch: pooch.Pooch,
-        processor: Optional[Processor] = None,
+        processor: Processor | None = None,
     ) -> object:
         return pooch.fetch(fname, processor, downloader=self)
 
@@ -114,9 +113,9 @@ class _BaseDownloader(Downloader):
     def retrieve(
         self,
         url: str,
-        known_hash: Optional[str] = ...,
-        fname: Optional[str] = ...,
-        path: "Optional[StrPath]" = ...,
+        known_hash: str | None = ...,
+        fname: str | None = ...,
+        path: "StrPath | None" = ...,
         processor: None = ...,
     ) -> str: ...
 
@@ -124,30 +123,30 @@ class _BaseDownloader(Downloader):
     def retrieve(
         self,
         url: str,
-        known_hash: Optional[str] = ...,
-        fname: Optional[str] = ...,
-        path: "Optional[StrPath]" = ...,
+        known_hash: str | None = ...,
+        fname: str | None = ...,
+        path: "StrPath | None" = ...,
         *,
-        processor: Callable[[str, Action, Optional[pooch.Pooch]], _T],
+        processor: Callable[[str, Action, pooch.Pooch | None], _T],
     ) -> _T: ...
 
     @overload
     def retrieve(
         self,
         url: str,
-        known_hash: Optional[str],
-        fname: Optional[str],
-        path: "Optional[StrPath]",
-        processor: Callable[[str, Action, Optional[pooch.Pooch]], _T],
+        known_hash: str | None,
+        fname: str | None,
+        path: "StrPath | None",
+        processor: Callable[[str, Action, pooch.Pooch | None], _T],
     ) -> _T: ...
 
     def retrieve(
         self,
         url: str,
-        known_hash: Optional[str] = None,
-        fname: Optional[str] = None,
-        path: "Optional[StrPath]" = None,
-        processor: Optional[Processor] = None,
+        known_hash: str | None = None,
+        fname: str | None = None,
+        path: "StrPath | None" = None,
+        processor: Processor | None = None,
     ) -> object:
         return pooch.retrieve(  # pyright: ignore[reportUnknownMemberType]
             url,
@@ -160,7 +159,7 @@ class _BaseDownloader(Downloader):
 
     def set_token(
         self,
-        token: Optional[anyio.lowlevel.EventLoopToken] = None,
+        token: anyio.lowlevel.EventLoopToken | None = None,
     ) -> None:
         self._token = token
 
@@ -169,17 +168,15 @@ class RattlerDownloader(_BaseDownloader):
     @override
     def __init__(
         self,
-        *middlewares: Union[
-            rattler.networking.AddHeadersMiddleware,
-            rattler.networking.AuthenticationMiddleware,
-            rattler.networking.GCSMiddleware,
-            rattler.networking.MirrorMiddleware,
-            rattler.networking.OciMiddleware,
-            rattler.networking.RetryMiddleware,
-            rattler.networking.S3Middleware,
-        ],
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[int] = None,
+        *middlewares: rattler.networking.AddHeadersMiddleware
+            | rattler.networking.AuthenticationMiddleware
+            | rattler.networking.GCSMiddleware
+            | rattler.networking.MirrorMiddleware
+            | rattler.networking.OciMiddleware
+            | rattler.networking.RetryMiddleware
+            | rattler.networking.S3Middleware,
+        headers: Mapping[str, str] | None = None,
+        timeout: int | None = None,
     ) -> None:
         super().__init__()
         self._client = rattler.Client(
@@ -193,9 +190,9 @@ class RattlerDownloader(_BaseDownloader):
         self,
         url: str,
         output_file: object,
-        pooch: Optional[pooch.Pooch],
+        pooch: pooch.Pooch | None,
         *,
-        check_only: Optional[bool] = None,
+        check_only: bool | None = None,
     ) -> None:
         if check_only:
             # https://github.com/fatiando/pooch/blob/v1.9.0/pooch/core.py#L749
@@ -222,15 +219,13 @@ class ResumableDownloader(_BaseDownloader):
     @override
     def __init__(
         self,
-        *middlewares: Union[
-            rattler.networking.AddHeadersMiddleware,
-            rattler.networking.AuthenticationMiddleware,
-            rattler.networking.GCSMiddleware,
-            rattler.networking.OciMiddleware,
-            rattler.networking.S3Middleware,
-        ],
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[int] = None,
+        *middlewares: rattler.networking.AddHeadersMiddleware
+            | rattler.networking.AuthenticationMiddleware
+            | rattler.networking.GCSMiddleware
+            | rattler.networking.OciMiddleware
+            | rattler.networking.S3Middleware,
+        headers: Mapping[str, str] | None = None,
+        timeout: int | None = None,
         max_retries: int = 3,
     ) -> None:
         super().__init__()
@@ -244,9 +239,9 @@ class ResumableDownloader(_BaseDownloader):
         self,
         url: str,
         output_file: object,
-        pooch: Optional[pooch.Pooch],
+        pooch: pooch.Pooch | None,
         *,
-        check_only: Optional[bool] = None,
+        check_only: bool | None = None,
     ) -> None:
         if check_only:
             raise TypeError
@@ -280,21 +275,21 @@ class ResumableDownloader(_BaseDownloader):
 
 
 @overload
-def choose_downloader(url: str, progressbar: Literal[False] = ...) -> Union[
-    RattlerDownloader,
-    pooch.DOIDownloader,
-    pooch.FTPDownloader,
-    pooch.SFTPDownloader,
-]: ...
+def choose_downloader(url: str, progressbar: Literal[False] = ...) -> (
+    RattlerDownloader
+    | pooch.DOIDownloader
+    | pooch.FTPDownloader
+    | pooch.SFTPDownloader
+): ...
 
 @overload
-def choose_downloader(url: str, progressbar: Union[bool, Progress]) -> Union[  # ruff: ignore[boolean-type-hint-positional-argument]
-    RattlerDownloader,
-    pooch.DOIDownloader,
-    pooch.FTPDownloader,
-    pooch.HTTPDownloader,
-    pooch.SFTPDownloader,
-]: ...
+def choose_downloader(url: str, progressbar: bool | Progress) -> (  # ruff: ignore[boolean-type-hint-positional-argument]
+    RattlerDownloader
+    | pooch.DOIDownloader
+    | pooch.FTPDownloader
+    | pooch.HTTPDownloader
+    | pooch.SFTPDownloader
+): ...
 
 
 @functools.wraps(
@@ -302,16 +297,13 @@ def choose_downloader(url: str, progressbar: Union[bool, Progress]) -> Union[  #
     assigned=["__doc__"],
     updated=(),
 )
-def choose_downloader(
-    url: str,
-    progressbar: Union[bool, Progress] = False,  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
-) -> Union[
-    RattlerDownloader,
-    pooch.DOIDownloader,
-    pooch.FTPDownloader,
-    pooch.HTTPDownloader,
-    pooch.SFTPDownloader,
-]:
+def choose_downloader(url: str, progressbar: bool | Progress = False) -> (  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
+    RattlerDownloader
+    | pooch.DOIDownloader
+    | pooch.FTPDownloader
+    | pooch.HTTPDownloader
+    | pooch.SFTPDownloader
+):
     if not progressbar and url.startswith(
         ("gcs://", "http://", "https://", "oci://", "s3://"),
     ):
@@ -333,7 +325,7 @@ def install() -> None:
 
 
 def _add_range_header(f: BinaryIO) -> rattler.networking.AddHeadersMiddleware:
-    def callback(host: str, path: str) -> Optional[dict[str, str]]:
+    def callback(host: str, path: str) -> dict[str, str] | None:
         if partial := f.tell() - initial:
             if partial > 0:
                 return {"Range": f"bytes={partial}-"}
@@ -345,7 +337,7 @@ def _add_range_header(f: BinaryIO) -> rattler.networking.AddHeadersMiddleware:
     return rattler.networking.AddHeadersMiddleware(callback)
 
 
-def _headers(headers: Optional[Mapping[str, str]]) -> Optional[dict[str, str]]:
+def _headers(headers: Mapping[str, str] | None) -> dict[str, str] | None:
     if not headers:
         return None
     if "user-agent" in map(str.lower, headers):
@@ -369,7 +361,7 @@ def _open_output_file(
 def _syncify(
     func: Callable[[Unpack[_Ts]], Coroutine[Any, Any, None]],
     *args: Unpack[_Ts],
-    token: Optional[anyio.lowlevel.EventLoopToken],
+    token: anyio.lowlevel.EventLoopToken | None,
 ) -> None:
     try:
         anyio.from_thread.run(func, *args, token=token)

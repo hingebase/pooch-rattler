@@ -1,60 +1,57 @@
 # This should match the minimum supported Pixi version
-#:schema https://pixi.prefix.dev/v0.71.0/schema/manifest/schema.json
+#:schema https://pixi.prefix.dev/v0.82.1/schema/manifest/schema.json
 
 [workspace]
 channels = ["conda-forge"]
 platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
 preview = ["pixi-build"]
-requires-pixi = ">=0.71.0"
+requires-pixi = ">=0.82.1"
 
 [package.build.backend]
 name = "pixi-build-python"
-version = ">=0.6.0"
+version = ">=0.8.6"
 channels = ["conda-forge"]
 
 [package.build.config]
 ignore-pypi-mapping = true
 
 [package.host-dependencies]
-uv = ">=0.13.0,<0.14.0"
+uv = ">=0.13.4,<0.14.0"
 
 [package.run-dependencies]
-anyio = ">=4.12.0,<5.0.0"
+anyio = ">=4.14.0,<5.0.0"
 pooch = ">=1.9.0,<2.0.0"
-py-rattler = ">=0.23.1,<2.0.0"
-typing-extensions = ">=4.14.0,<5.0.0"
+py-rattler = ">=0.28.0,<2.0.0"
+typing-extensions = ">=4.16.0,<5.0.0"
 uvloop = { version = ">=0.22.1,<2.0.0", when = "__unix" }
 winloop = { version = ">=0.3.1,<2.0.0", when = "__win" }
 
 [dependencies]
+basedpyright = ">=1.40.2"
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
 pyrefly = ">=1.4.0"
-pytest = ">=8.4.2"
+pytest = ">=9.1.1"
 tqdm = ">=4.67.2"
 trio = ">=0.31.0"
 ty = ">=0.0.91"
 types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
-bustapi = ">=0.9.2,!=0.13.0"
+bustapi = ">=0.15.0"
 
 [environments]
-# conda-forge has dropped support for Python 3.9
+# conda-forge has dropped support for Python 3.10
 # Testing the minimum and maximum Python versions
-default = ["py310"]
+default = ["py311"]
 py315 = ["py315"]
 
-[feature.py310.dependencies]
-python-gil = "3.10.*"
+[feature.py311.dependencies]
+python-gil = "3.11.*"
 ruff = ">=0.17.2"
 tombi = ">=1.9.3"
 
-[feature.py310.pypi-dependencies]
-basedpyright = ">=1.40.2"
-
 [feature.py315.dependencies]
-basedpyright = ">=1.40.2"
 python-gil = "3.15.*"
 
 [tasks]

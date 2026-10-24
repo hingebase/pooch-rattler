@@ -76,11 +76,7 @@ def test_basedpyright(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_pyrefly(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with pyrefly."""
-    argv = ["pyrefly", "check"]
-    if sys.version_info < (3, 10):
-        # BustAPI 0.2.1 lacks many features
-        argv += ["--ignore", "missing-attribute"]
-    _run_module_or_executable(argv, monkeypatch)
+    _run_module_or_executable(["pyrefly", "check"], monkeypatch)
 
 
 def test_pyrefly_coverage(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -107,8 +103,6 @@ def test_ruff(monkeypatch: pytest.MonkeyPatch) -> None:
 )
 def test_tombi() -> None:
     """Linting with Tombi."""
-    if sys.version_info < (3, 10):
-        pytest.skip("Tombi requires Python 3.10 or later")
     tombi = "tombi" + sysconfig.get_config_var("EXE")
     try:
         dist = importlib.metadata.distribution("tombi")
@@ -134,13 +128,6 @@ def test_tombi() -> None:
 def test_ty(monkeypatch: pytest.MonkeyPatch) -> None:
     """Type checking with ty."""
     argv = ["ty", "check", "--python", sys.executable]
-    if sys.version_info < (3, 10):
-        # https://github.com/pytest-dev/pytest/pull/13445
-        # Merged in pytest 9.0.0 which dropped Python 3.9 support
-        argv += [
-            "--ignore", "invalid-argument-type",
-            "--ignore", "too-many-positional-arguments",
-        ]
     _run_module_or_executable(argv, monkeypatch)
 
 

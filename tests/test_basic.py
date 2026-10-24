@@ -36,7 +36,6 @@ import math
 import pathlib
 import sys
 import time
-from typing import Optional
 
 import pytest
 import rattler.networking
@@ -122,10 +121,6 @@ def test_retry_with_different_mirrors(
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10),
-    reason="StreamingResponse was introduced in BustAPI 0.6.0",
-)
 def test_resume(server_port: int, tmp_path: pathlib.Path) -> None:
     """Test resumption from partial downloaded file."""
     pooch_rattler.ResumableDownloader().retrieve(
@@ -152,9 +147,9 @@ class _EnsureRequestPath:
 # Taken from https://www.fatiando.org/pooch/latest/progressbars.html#using-custom-progress-bars
 # with annotations added
 class _MinimalProgressDisplay:
-    def __init__(self, total: Optional[int]) -> None:  # ruff: ignore[future-rewritable-type-annotation]
+    def __init__(self, total: int | None) -> None:
         self.count: int = 0
-        self.total: Optional[int] = total  # ruff: ignore[future-rewritable-type-annotation]
+        self.total: int | None = total
 
     @override
     def __repr__(self) -> str:
