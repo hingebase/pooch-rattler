@@ -61,12 +61,6 @@ from typing_extensions import (
 if TYPE_CHECKING:
     from _typeshed import StrPath
 
-_BuiltInDownloader = (
-    pooch.DOIDownloader
-    | pooch.FTPDownloader
-    | pooch.HTTPDownloader
-    | pooch.SFTPDownloader
-)
 _T = TypeVar("_T")
 _Ts = TypeVarTuple("_Ts")
 
@@ -387,10 +381,13 @@ def install(
     timeout: int | None = None,
 ) -> _Uninstall:
     @functools.wraps(pooch.downloaders.choose_downloader, updated=())  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
-    def wrapper(
-        url: str,
-        progressbar: bool | Progress = False,  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
-    ) -> RattlerDownloader | _BuiltInDownloader:
+    def wrapper(url: str, progressbar: bool | Progress = False) -> (  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
+        RattlerDownloader
+        | pooch.DOIDownloader
+        | pooch.FTPDownloader
+        | pooch.HTTPDownloader
+        | pooch.SFTPDownloader
+    ):
         if not progressbar and url.startswith(
             ("gcs://", "http://", "https://", "oci://", "s3://"),
         ):
