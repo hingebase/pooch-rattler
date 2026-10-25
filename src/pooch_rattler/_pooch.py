@@ -28,13 +28,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-__all__ = [
-    "Progress",
-    "RattlerDownloader",
-    "ResumableDownloader",
-    "choose_downloader",
-    "install",
-]
+__all__ = ["Progress", "RattlerDownloader", "ResumableDownloader", "install"]
 
 import contextlib
 import functools
@@ -43,7 +37,7 @@ import pathlib
 import types
 import warnings
 from collections.abc import Callable, Coroutine, Generator, Mapping
-from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, BinaryIO, TypeVar, cast
 
 import anyio.from_thread
 import anyio.lowlevel
@@ -59,7 +53,6 @@ from typing_extensions import (
     TypeIs,
     TypeVarTuple,
     Unpack,
-    deprecated,
     overload,
     override,
     runtime_checkable,
@@ -364,58 +357,6 @@ class ResumableDownloader(_BaseDownloader):
                     del os.environ["RATTLER_AUTH_FILE"]
         else:
             yield
-
-
-# @deprecated doesn't play well with @wraps so we apply it here
-@overload
-@deprecated(
-    "`pooch_rattler.choose_downloader` is deprecated in favor of "
-    "`pooch_rattler.install`",
-)
-def choose_downloader(url: str, progressbar: Literal[False] = ...) -> (
-    RattlerDownloader
-    | pooch.DOIDownloader
-    | pooch.FTPDownloader
-    | pooch.SFTPDownloader
-): ...
-
-@overload
-@deprecated(
-    "`pooch_rattler.choose_downloader` is deprecated in favor of "
-    "`pooch_rattler.install`",
-)
-def choose_downloader(
-    url: str,
-    progressbar: bool | Progress,  # ruff: ignore[boolean-type-hint-positional-argument]
-) -> RattlerDownloader | _BuiltInDownloader: ...
-
-
-# This is still required for runtime warning
-@deprecated(
-    "`pooch_rattler.choose_downloader` is deprecated in favor of "
-    "`pooch_rattler.install`",
-)
-@functools.wraps(
-    pooch.downloaders.choose_downloader,  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
-    assigned=["__doc__"],
-    updated=(),
-)
-def choose_downloader(
-    url: str,
-    progressbar: bool | Progress = False,  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
-) -> RattlerDownloader | _BuiltInDownloader:
-    if not progressbar and url.startswith(
-        ("gcs://", "http://", "https://", "oci://", "s3://"),
-    ):
-        for key, value in _middlewares.items():
-            if url.startswith(key):
-                # Always create a new Rattler client which reflect
-                # environment changes
-                return RattlerDownloader(value, _retry)
-    return pooch.downloaders.choose_downloader(  # pyright: ignore[reportUnknownMemberType]  # ty: ignore[unsound-return-statement]
-        url,
-        cast("bool", progressbar),
-    )
 
 
 class _Uninstall(contextlib.AbstractContextManager[None, None]):
