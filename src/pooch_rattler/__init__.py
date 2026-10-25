@@ -30,13 +30,7 @@
 
 """Pooch downloader powered by Rattler."""
 
-__all__ = [
-    "Downloader",
-    "Progress",
-    "ResumableDownloader",
-    "choose_downloader",
-    "install",
-]
+__all__ = ["Downloader", "Progress", "ResumableDownloader", "install"]
 
-from ._pooch import Progress, ResumableDownloader, choose_downloader, install
+from ._pooch import Progress, ResumableDownloader, install
 from ._pooch import RattlerDownloader as Downloader
