@@ -40,21 +40,26 @@ import contextlib
 import functools
 import os
 import pathlib
-from collections.abc import Callable, Coroutine, Mapping
+import types
+import warnings
+from collections.abc import Callable, Coroutine, Generator, Mapping
 from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar, cast
 
 import anyio.from_thread
 import anyio.lowlevel
 import pooch.downloaders  # pyright: ignore[reportMissingTypeStubs]
-import rattler.networking
+import rattler.networking.middleware
 import rattler.package_streaming
 from pooch.typing import Action, Downloader, Processor  # pyright: ignore[reportMissingTypeStubs]
+from requests.structures import CaseInsensitiveDict
 from typing_extensions import (
     Any,
     Protocol,
+    Self,
     TypeIs,
     TypeVarTuple,
     Unpack,
+    deprecated,
     overload,
     override,
     runtime_checkable,
@@ -63,8 +68,16 @@ from typing_extensions import (
 if TYPE_CHECKING:
     from _typeshed import StrPath
 
+_BuiltInDownloader = (
+    pooch.DOIDownloader
+    | pooch.FTPDownloader
+    | pooch.HTTPDownloader
+    | pooch.SFTPDownloader
+)
 _T = TypeVar("_T")
 _Ts = TypeVarTuple("_Ts")
+
+_DEFAULT_USER_AGENT = f"py-rattler/{rattler.__version__}"
 
 
 @runtime_checkable
@@ -176,14 +189,33 @@ class RattlerDownloader(_BaseDownloader):
             | rattler.networking.RetryMiddleware
             | rattler.networking.S3Middleware,
         headers: Mapping[str, str] | None = None,
+        user_agent: str | None = None,
         timeout: int | None = None,
     ) -> None:
         super().__init__()
+        headers, user_agent = _ensure_ua(headers, user_agent)
         self._client = rattler.Client(
             list(middlewares) if middlewares else None,
-            _headers(headers),
-            timeout=timeout,
+            headers,
+            user_agent,
+            timeout,
         )
+
+    @classmethod
+    def from_config(
+        cls,
+        config: rattler.Config,
+        max_retries: int = 3,
+        headers: Mapping[str, str] | None = None,
+        user_agent: str | None = None,
+        timeout: int | None = None,
+    ) -> Self:
+        self = cls.__new__(cls)
+        super(RattlerDownloader, self).__init__()
+        headers, user_agent = _ensure_ua(headers, user_agent)
+        self._client = rattler.Client.from_config(
+            config, max_retries, headers, user_agent, timeout)
+        return self
 
     @override
     def __call__(  # pyrefly: ignore[bad-override-param-name]  # ty: ignore[invalid-method-override]
@@ -216,6 +248,8 @@ class RattlerDownloader(_BaseDownloader):
 
 
 class ResumableDownloader(_BaseDownloader):
+    _rattler_auth_file: str | None
+
     @override
     def __init__(
         self,
@@ -224,15 +258,55 @@ class ResumableDownloader(_BaseDownloader):
             | rattler.networking.GCSMiddleware
             | rattler.networking.OciMiddleware
             | rattler.networking.S3Middleware,
-        headers: Mapping[str, str] | None = None,
-        timeout: int | None = None,
         max_retries: int = 3,
+        headers: Mapping[str, str] | None = None,
+        user_agent: str | None = None,
+        timeout: int | None = None,
     ) -> None:
         super().__init__()
         self._middlewares = middlewares
-        self._headers = _headers(headers)
-        self._timeout = timeout
         self._max_retries = max(max_retries, 0)
+        self._headers = _ensure_ua(headers, user_agent)
+        self._timeout = timeout
+        self._rattler_auth_file = None
+
+    @classmethod
+    def from_config(
+        cls,
+        config: rattler.Config,
+        max_retries: int = 3,
+        headers: Mapping[str, str] | None = None,
+        user_agent: str | None = None,
+        timeout: int | None = None,
+    ) -> Self:
+        if config.mirrors:
+            warnings.warn(
+                "Using mirrors with resumable downloaders is unsupported. "
+                "Ignoring the mirrors, and if you have trouble downloading a "
+                "file, consider constructing the mirrored URL yourself or"
+                "switching to the regular downloader.",
+                stacklevel=2,
+            )
+        self = cls(
+            _middlewares["http://", "https://"],
+            _middlewares["oci://"],
+            _middlewares["gcs://"],
+            rattler.networking.S3Middleware({
+                k: rattler.networking.middleware.S3Config(
+                    v.get("endpoint-url"),
+                    v.get("region"),
+                    v.get("addressing-style", "virtual-host"),
+                )
+                for k, v in config.s3_options.items()
+            }),
+            max_retries=max_retries,
+            headers=headers,
+            user_agent=user_agent,
+            timeout=timeout,
+        )
+        if authentication_override_file := config.authentication_override_file:
+            self._rattler_auth_file = str(authentication_override_file)
+        return self
 
     @override
     def __call__(  # pyrefly: ignore[bad-override-param-name]  # ty: ignore[invalid-method-override]
@@ -247,11 +321,14 @@ class ResumableDownloader(_BaseDownloader):
             raise TypeError
         last_exc = None
         with _open_output_file(output_file) as f:
-            client = rattler.Client(
-                [*self._middlewares, _add_range_header(f)],
-                self._headers,
-                timeout=self._timeout,
-            )
+            headers, user_agent = self._headers
+            with self._authentication_override():
+                client = rattler.Client(
+                    [*self._middlewares, _add_range_header(f)],
+                    headers,
+                    user_agent,
+                    self._timeout,
+                )
             for _ in range(self._max_retries + 1):
                 try:
                     _syncify(
@@ -273,8 +350,28 @@ class ResumableDownloader(_BaseDownloader):
         message = "Unreachable"
         raise AssertionError(message)
 
+    @contextlib.contextmanager
+    def _authentication_override(self) -> Generator[None]:
+        if rattler_auth_file := self._rattler_auth_file:
+            backup = os.getenv("RATTLER_AUTH_FILE")
+            os.environ["RATTLER_AUTH_FILE"] = rattler_auth_file
+            try:
+                yield
+            finally:
+                if backup:
+                    os.environ["RATTLER_AUTH_FILE"] = backup
+                else:
+                    del os.environ["RATTLER_AUTH_FILE"]
+        else:
+            yield
 
+
+# @deprecated doesn't play well with @wraps so we apply it here
 @overload
+@deprecated(
+    "`pooch_rattler.choose_downloader` is deprecated in favor of "
+    "`pooch_rattler.install`",
+)
 def choose_downloader(url: str, progressbar: Literal[False] = ...) -> (
     RattlerDownloader
     | pooch.DOIDownloader
@@ -283,27 +380,30 @@ def choose_downloader(url: str, progressbar: Literal[False] = ...) -> (
 ): ...
 
 @overload
-def choose_downloader(url: str, progressbar: bool | Progress) -> (  # ruff: ignore[boolean-type-hint-positional-argument]
-    RattlerDownloader
-    | pooch.DOIDownloader
-    | pooch.FTPDownloader
-    | pooch.HTTPDownloader
-    | pooch.SFTPDownloader
-): ...
+@deprecated(
+    "`pooch_rattler.choose_downloader` is deprecated in favor of "
+    "`pooch_rattler.install`",
+)
+def choose_downloader(
+    url: str,
+    progressbar: bool | Progress,  # ruff: ignore[boolean-type-hint-positional-argument]
+) -> RattlerDownloader | _BuiltInDownloader: ...
 
 
+# This is still required for runtime warning
+@deprecated(
+    "`pooch_rattler.choose_downloader` is deprecated in favor of "
+    "`pooch_rattler.install`",
+)
 @functools.wraps(
     pooch.downloaders.choose_downloader,  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
     assigned=["__doc__"],
     updated=(),
 )
-def choose_downloader(url: str, progressbar: bool | Progress = False) -> (  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
-    RattlerDownloader
-    | pooch.DOIDownloader
-    | pooch.FTPDownloader
-    | pooch.HTTPDownloader
-    | pooch.SFTPDownloader
-):
+def choose_downloader(
+    url: str,
+    progressbar: bool | Progress = False,  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
+) -> RattlerDownloader | _BuiltInDownloader:
     if not progressbar and url.startswith(
         ("gcs://", "http://", "https://", "oci://", "s3://"),
     ):
@@ -318,10 +418,61 @@ def choose_downloader(url: str, progressbar: bool | Progress = False) -> (  # ru
     )
 
 
-def install() -> None:
-    pooch.core.choose_downloader = (  # ty: ignore[invalid-assignment]
-        choose_downloader  # pyrefly: ignore[bad-assignment]
-    )
+class _Uninstall(contextlib.AbstractContextManager[None, None]):
+    @override
+    def __enter__(self) -> None:
+        pass
+
+    @override
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: types.TracebackType | None,
+        /,
+    ) -> None:
+        pooch.core.choose_downloader = pooch.downloaders.choose_downloader  # pyright: ignore[reportUnknownMemberType]
+
+
+# Neither `py-rattler` nor `requests` supports sending multiple header
+# lines with the same name. Input headers are collapsed through
+# `CaseInsensitiveDict` in both cases. Use comma-separated header
+# values instead.
+def install(
+    config: rattler.Config | None = None,
+    max_retries: int = 3,
+    headers: Mapping[str, str] | None = None,
+    user_agent: str | None = None,
+    timeout: int | None = None,
+) -> _Uninstall:
+    @functools.wraps(pooch.downloaders.choose_downloader, updated=())  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
+    def wrapper(
+        url: str,
+        progressbar: bool | Progress = False,  # ruff: ignore[boolean-default-value-positional-argument, boolean-type-hint-positional-argument]
+    ) -> RattlerDownloader | _BuiltInDownloader:
+        if not progressbar and url.startswith(
+            ("gcs://", "http://", "https://", "oci://", "s3://"),
+        ):
+            if config:
+                return RattlerDownloader.from_config(
+                    config, max_retries, headers, user_agent, timeout)
+            for key, value in _middlewares.items():
+                if url.startswith(key):
+                    return RattlerDownloader(
+                        value,
+                        rattler.networking.RetryMiddleware(max_retries),
+                        headers=headers,
+                        user_agent=user_agent,
+                        timeout=timeout,
+                    )
+        downloader = pooch.downloaders.choose_downloader(  # pyright: ignore[reportUnknownMemberType]
+            url,
+            cast("bool", progressbar),
+        )
+        _customize(downloader, headers, user_agent, timeout)
+        return downloader  # ty: ignore[unsound-return-statement]
+    pooch.core.choose_downloader = wrapper  # ty: ignore[invalid-assignment]
+    return _Uninstall()
 
 
 def _add_range_header(f: BinaryIO) -> rattler.networking.AddHeadersMiddleware:
@@ -337,13 +488,77 @@ def _add_range_header(f: BinaryIO) -> rattler.networking.AddHeadersMiddleware:
     return rattler.networking.AddHeadersMiddleware(callback)
 
 
-def _headers(headers: Mapping[str, str] | None) -> dict[str, str] | None:
+@functools.singledispatch
+def _customize(
+    downloader: object,
+    headers: Mapping[str, str] | None,
+    user_agent: str | None,
+    timeout: int | None,
+) -> None:
+    raise NotImplementedError
+
+
+@_customize.register
+def _(
+    downloader: pooch.DOIDownloader,
+    headers: Mapping[str, str] | None,
+    user_agent: str | None,
+    timeout: int | None,
+) -> None:
+    if headers:
+        downloader.headers = merged = CaseInsensitiveDict(downloader.headers)  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
+        merged.update(headers)
+        if user_agent:
+            merged["User-Agent"] = user_agent
+    elif user_agent:
+        downloader.headers = {"User-Agent": user_agent}
+    if timeout:
+        downloader.timeout = timeout
+
+
+@_customize.register(pooch.FTPDownloader)
+@_customize.register(pooch.SFTPDownloader)
+def _(
+    downloader: pooch.FTPDownloader | pooch.SFTPDownloader,
+    headers: Mapping[str, str] | None,
+    user_agent: str | None,
+    timeout: int | None,
+) -> None:
+    del headers, user_agent
+    if timeout:
+        downloader.timeout = timeout
+
+
+@_customize.register
+def _(
+    downloader: pooch.HTTPDownloader,
+    headers: Mapping[str, str] | None,
+    user_agent: str | None,
+    timeout: int | None,
+) -> None:
+    if headers:
+        downloader.kwargs["headers"] = merged = CaseInsensitiveDict(headers)  # pyright: ignore[reportUnknownMemberType]
+        if user_agent:
+            merged["User-Agent"] = user_agent
+    elif user_agent:
+        downloader.kwargs["headers"] = {"User-Agent": user_agent}  # pyright: ignore[reportUnknownMemberType]
+    if timeout:
+        downloader.kwargs["timeout"] = timeout  # pyright: ignore[reportUnknownMemberType]
+
+
+# https://github.com/conda/rattler/blob/py-rattler-v0.28.0/py-rattler/src/networking/client.rs#L47-L48
+def _ensure_ua(
+    headers: Mapping[str, str] | None,
+    user_agent: str | None,
+) -> tuple[dict[str, str] | None, str | None]:
     if not headers:
-        return None
-    if "user-agent" in map(str.lower, headers):
-        return dict(headers)
-    # https://github.com/conda/rattler/blob/py-rattler-v0.25.0/py-rattler/src/networking/client.rs#L58-L59
-    return {"User-Agent": f"py-rattler/{rattler.__version__}", **headers}
+        return None, user_agent
+    d = CaseInsensitiveDict(headers)
+    if user_agent:
+        d.pop("User-Agent", None)
+    else:
+        user_agent = d.pop("User-Agent", _DEFAULT_USER_AGENT)
+    return dict(d), user_agent
 
 
 def _is_path_like(output_file: object) -> TypeIs[os.PathLike[str]]:
@@ -373,9 +588,8 @@ def _syncify(
 # and thus can be cached safely
 _middlewares = {
     "gcs://": rattler.networking.GCSMiddleware(),
-    "https://": rattler.networking.AuthenticationMiddleware(),
+    ("http://", "https://"): rattler.networking.AuthenticationMiddleware(),
     "oci://": rattler.networking.OciMiddleware(),
     "s3://": rattler.networking.S3Middleware(),
 }
-_middlewares["http://"] = _middlewares["https://"]
 _retry = rattler.networking.RetryMiddleware()

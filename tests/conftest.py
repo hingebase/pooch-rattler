@@ -104,6 +104,7 @@ def _main(port: int) -> None:
     route("/test-s3-compatible/api")(lambda: _auth(
         b"X-Amz-Credential=test-access-key-id" in bustapi.request.query_string,
     ))
+    route("/test-s3-compatible/resumable")(_test_resume_s3)
     app.run(port=port, load_dotenv=False)  # pyright: ignore[reportUnknownMemberType]
 
 
@@ -179,6 +180,13 @@ def _test_resume() -> bustapi.Response:
         _partial_response(),
         media_type="text/plain",
     )
+
+
+def _test_resume_s3() -> bustapi.Response:
+    _auth(
+        b"X-Amz-Credential=test-access-key-id" in bustapi.request.query_string,
+    )
+    return _test_resume()
 
 
 def _turbo_route(app: bustapi.BustAPI, route: _F) -> _F:
