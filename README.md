@@ -59,7 +59,7 @@ sections. To use it, replace your `pooch_rattler.Downloader` with
 
 [1]: https://www.fatiando.org/pooch/latest/downloaders.html
 [2]: https://github.com/conda/rattler
-[3]: https://rattler.prefix.dev/py-rattler/client/
+[3]: https://rattler.prefix.dev/py-rattler/latest/client/#rattler.networking.AddHeadersMiddleware
 [4]: https://github.com/fatiando/pooch/issues/398
 [5]: https://github.com/fatiando/pooch/issues/363
 [6]: https://github.com/fatiando/pooch/issues/464
