@@ -39,7 +39,7 @@ ty = ">=0.0.102"
 types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
-bustapi = ">=0.15.0"
+bustapi = ">=0.16.0"
 
 [environments]
 # conda-forge has dropped support for Python 3.10
