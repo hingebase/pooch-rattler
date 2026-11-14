@@ -218,7 +218,7 @@ class RattlerDownloader(_BaseDownloader):
         return self
 
     @override
-    def __call__(  # pyrefly: ignore[bad-override-param-name]  # ty: ignore[invalid-method-override]
+    def __call__(  # pyrefly: ignore[bad-override-param-name]  # ty: ignore[lost-keyword-for-regular-parameter]
         self,
         url: str,
         output_file: object,
@@ -309,7 +309,7 @@ class ResumableDownloader(_BaseDownloader):
         return self
 
     @override
-    def __call__(  # pyrefly: ignore[bad-override-param-name]  # ty: ignore[invalid-method-override]
+    def __call__(  # pyrefly: ignore[bad-override-param-name]  # ty: ignore[lost-keyword-for-regular-parameter]
         self,
         url: str,
         output_file: object,
@@ -412,7 +412,7 @@ def choose_downloader(
                 # Always create a new Rattler client which reflect
                 # environment changes
                 return RattlerDownloader(value, _retry)
-    return pooch.downloaders.choose_downloader(  # pyright: ignore[reportUnknownMemberType]  # ty: ignore[unsound-return-statement]
+    return pooch.downloaders.choose_downloader(  # pyright: ignore[reportUnknownMemberType]  # ty: ignore[unsound-return]
         url,
         cast("bool", progressbar),
     )
@@ -470,7 +470,7 @@ def install(
             cast("bool", progressbar),
         )
         _customize(downloader, headers, user_agent, timeout)
-        return downloader  # ty: ignore[unsound-return-statement]
+        return downloader  # ty: ignore[unsound-return]
     pooch.core.choose_downloader = wrapper  # ty: ignore[invalid-assignment]
     return _Uninstall()
 

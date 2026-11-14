@@ -31,11 +31,11 @@ winloop = { version = ">=0.3.1,<2.0.0", when = "__win" }
 basedpyright = ">=1.40.2"
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
-pyrefly = ">=1.4.0"
+pyrefly = ">=1.4.1"
 pytest = ">=9.1.1"
 tqdm = ">=4.67.2"
 trio = ">=0.31.0"
-ty = ">=0.0.91"
+ty = ">=0.0.102"
 types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
@@ -49,8 +49,8 @@ py315 = ["py315"]
 
 [feature.py311.dependencies]
 python-gil = "3.11.*"
-ruff = ">=0.17.2"
-tombi = ">=1.9.3"
+ruff = ">=0.17.5"
+tombi = ">=1.11.2"
 
 [feature.py315.dependencies]
 python-gil = "3.15.*"
