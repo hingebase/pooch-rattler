@@ -40,6 +40,8 @@ from typing import Any, TypeVar, cast
 
 import bustapi
 import pytest
+import rattler
+from packaging import version
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 
@@ -135,13 +137,19 @@ def _test_gcs() -> str:
 
 
 def _test_gcs_token() -> dict[str, str]:
+    # https://github.com/googleapis/google-cloud-rust/pull/7283
+    if version.parse(rattler.__version__) >= version.parse("0.29.0"):
+        scope = "scope"
+    else:
+        scope = "scopes"
+
     body = bustapi.request.json
     _auth(
         body["grant_type"] == "refresh_token",
         body["client_id"] == "test-client-id",
         body["client_secret"] == "test-client-secret",  # ruff: ignore[hardcoded-password-string]
         body["refresh_token"] == "test-refresh-token",  # ruff: ignore[hardcoded-password-string]
-        body["scopes"] == "https://www.googleapis.com/auth/devstorage.read_only",
+        body[scope] == "https://www.googleapis.com/auth/devstorage.read_only",
     )
     return {
         "access_token": "test-access-token",
