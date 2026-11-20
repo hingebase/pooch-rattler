@@ -31,15 +31,15 @@ winloop = { version = ">=0.3.1,<2.0.0", when = "__win" }
 basedpyright = ">=1.40.2"
 jinja2 = ">=3.1.6"
 pooch-rattler = { path = "." }
-pyrefly = ">=1.4.0"
-pytest = ">=9.1.1"
+pyrefly = ">=1.5.0"
+pytest = ">=9.2.0"
 tqdm = ">=4.67.2"
 trio = ">=0.31.0"
-ty = ">=0.0.91"
+ty = ">=0.0.107"
 types-tqdm = ">=4.67.2"
 
 [pypi-dependencies]
-bustapi = ">=0.15.0"
+bustapi = ">=0.16.0"
 
 [environments]
 # conda-forge has dropped support for Python 3.10
@@ -49,8 +49,8 @@ py315 = ["py315"]
 
 [feature.py311.dependencies]
 python-gil = "3.11.*"
-ruff = ">=0.17.2"
-tombi = ">=1.9.3"
+ruff = ">=0.17.6"
+tombi = ">=1.11.3"
 
 [feature.py315.dependencies]
 python-gil = "3.15.*"

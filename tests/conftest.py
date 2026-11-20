@@ -74,14 +74,14 @@ def _auth(*requirements: bool) -> str:
 
 
 def _get_headers() -> Mapping[str, str]:
-    return bustapi.request.headers  # ty: ignore[unsound-return-statement]
+    return bustapi.request.headers  # ty: ignore[unsound-return]
 
 
 def _main(port: int) -> None:
     app = bustapi.BustAPI()
     post = _post(app)
     route = _route(app)
-    turbo_route = _turbo_route(app, route)
+    turbo_route = _turbo_route(app)
     turbo_route("/200/")(lambda: "OK")
     turbo_route("/503/")(lambda: bustapi.abort(503))  # pyright: ignore[reportUnknownMemberType]
     turbo_route("/sleep/")(lambda: time.sleep(2))
@@ -189,5 +189,5 @@ def _test_resume_s3() -> bustapi.Response:
     return _test_resume()
 
 
-def _turbo_route(app: bustapi.BustAPI, route: _F) -> _F:
-    return getattr(app, "turbo_route", route)
+def _turbo_route(app: bustapi.BustAPI) -> Callable[[str], Callable[[_F], _F]]:
+    return cast("Callable[[str], Any]", app.turbo_route)
