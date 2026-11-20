@@ -45,12 +45,12 @@ dev = [
     "bustapi >=0.16.0",
     "nodejs-wheel-binaries <=20.18.0; sys_platform == 'darwin' and platform_release < '20'",
     "nodejs-wheel-binaries <=22.20.0; sys_platform == 'darwin' and platform_release < '22'",
-    "pyrefly >=1.4.1",
+    "pyrefly >=1.5.0",
     "pytest >=9.2.0",
-    "ruff >=0.17.5",
-    "tombi >=1.11.2",
+    "ruff >=0.17.6",
+    "tombi >=1.11.3",
     "tqdm >=4.67.2",
-    "ty >=0.0.102",
+    "ty >=0.0.107",
     "types-tqdm >=4.67.2",
 ]
 

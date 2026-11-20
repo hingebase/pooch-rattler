@@ -38,5 +38,5 @@ __all__ = [
     "install",
 ]
 
-from ._pooch import Progress, ResumableDownloader, choose_downloader, install
+from ._pooch import Progress, ResumableDownloader, choose_downloader, install  # pyrefly: ignore[deprecated]
 from ._pooch import RattlerDownloader as Downloader
